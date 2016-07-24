@@ -6,9 +6,8 @@ import sys
 import aiohttp
 from aiohttp.web import Application, MsgType, Response, WebSocketResponse
 
-REAL_DEBUGGING_PORT = int(sys.argv[1]) if len(sys.argv) >= 2 else 12222
-NEW_DEBUGGING_PORT = int(sys.argv[2]) if len(sys.argv) >= 3 else 9222
-HOST = 'localhost'
+PROXY_DEBUGGING_PORT = int(sys.argv[1]) if len(sys.argv) >= 2 else 12222
+CHROME_DEBUGGING_PORT = int(sys.argv[2]) if len(sys.argv) >= 3 else 9222
 
 
 def port_juggling(tabs):
@@ -17,13 +16,14 @@ def port_juggling(tabs):
         #
         # if tab.get('webSocketDebuggerUrl'):
         #     tab['webSocketDebuggerUrl'] = tab['webSocketDebuggerUrl'].replace(
-        #         "ws://%s:%d/" % (HOST, REAL_DEBUGGING_PORT),
-        #         "ws://%s:%d/" % (HOST, NEW_DEBUGGING_PORT)
+        #         "ws://localhost:%d/" % CHROME_DEBUGGING_PORT,
+        #         "ws://localhost:%d/" % PROXY_DEBUGGING_PORT
         #     )
         #
         for k, v in tab.items():
-            if ":%d/" % REAL_DEBUGGING_PORT in v:
-                tab[k] = v.replace(":%d/" % REAL_DEBUGGING_PORT, ":%d/" % NEW_DEBUGGING_PORT)
+            if ":%d/" % CHROME_DEBUGGING_PORT in v:
+                tab[k] = v.replace("localhost:%d/" % CHROME_DEBUGGING_PORT,
+                                   "localhost:%d/" % PROXY_DEBUGGING_PORT)
     return new_tabs
 
 
@@ -32,7 +32,7 @@ async def http_handler(request):
     path = request.path
 
     session = aiohttp.ClientSession(loop=request.app.loop)
-    url = "http://%s:%s%s" % (HOST, REAL_DEBUGGING_PORT, path)
+    url = "http://localhost:%s%s" % (CHROME_DEBUGGING_PORT, path)
     try:
         if path == '/json':
             response = await session.get(url)
@@ -45,7 +45,7 @@ async def http_handler(request):
                 data = await response.read()
                 return Response(body=data)
             except (aiohttp.errors.ClientOSError, OSError):
-                print("%s unavailable" % url)
+                print("%s is unavailable" % url)
         else:
             msg = "Don not know how to handle request to '%s'" % path
             print(msg)
@@ -58,7 +58,7 @@ async def http_handler(request):
 
 async def redirect_handler(request):
     path_qs = request.path_qs
-    return aiohttp.web.HTTPMovedPermanently("http://localhost:%s%s" % (REAL_DEBUGGING_PORT, path_qs))
+    return aiohttp.web.HTTPMovedPermanently("http://localhost:%s%s" % (CHROME_DEBUGGING_PORT, path_qs))
 
 
 async def from_browser_to_client(ws_client, ws_browser):
@@ -78,7 +78,7 @@ async def ws_handler(request):
     request.app['sockets'].append(ws_client)
 
     session = aiohttp.ClientSession(loop=request.app.loop)
-    url = "ws://%s:%s%s" % (HOST, REAL_DEBUGGING_PORT, request.path)
+    url = "ws://localhost:%s%s" % (CHROME_DEBUGGING_PORT, request.path)
     task = None
     try:
         ws_browser = await session.ws_connect(url, autoclose=False, autoping=False)
@@ -109,9 +109,9 @@ async def init(loop):
     app.router.add_route('GET', '/devtools/inspector.html', redirect_handler)
 
     handler = app.make_handler()
-    srv = await loop.create_server(handler, HOST, NEW_DEBUGGING_PORT)
-    print("Server started at %s:%d.\n"
-          "Launch Chrome with parameter --remote-debugging-port=%d" % (HOST, NEW_DEBUGGING_PORT, REAL_DEBUGGING_PORT))
+    srv = await loop.create_server(handler, 'localhost', PROXY_DEBUGGING_PORT)
+    print("Server started at localhost:%d.\n"
+          "Launch Chrome with parameter --remote-debugging-port=%d" % (PROXY_DEBUGGING_PORT, CHROME_DEBUGGING_PORT))
     return app, srv, handler
 
 
