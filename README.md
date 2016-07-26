@@ -1,6 +1,6 @@
-#  DevTools WebSocket Switch
+#  DevTools Proxy
 
 ## Usage
 ```
-python3 devtools-ws-switch.py 12222 9222
+python3 devtools-proxy.py 12222 9222
 ```

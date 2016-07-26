@@ -13,13 +13,6 @@ CHROME_DEBUGGING_PORT = int(sys.argv[2]) if len(sys.argv) >= 3 else 9222
 def port_juggling(tabs):
     new_tabs = tabs[:]
     for tab in new_tabs:
-        #
-        # if tab.get('webSocketDebuggerUrl'):
-        #     tab['webSocketDebuggerUrl'] = tab['webSocketDebuggerUrl'].replace(
-        #         "ws://localhost:%d/" % CHROME_DEBUGGING_PORT,
-        #         "ws://localhost:%d/" % PROXY_DEBUGGING_PORT
-        #     )
-        #
         for k, v in tab.items():
             if ":%d/" % CHROME_DEBUGGING_PORT in v:
                 tab[k] = v.replace("localhost:%d/" % CHROME_DEBUGGING_PORT,
@@ -45,11 +38,13 @@ async def http_handler(request):
                 data = await response.read()
                 return Response(body=data)
             except (aiohttp.errors.ClientOSError, OSError):
-                print("%s is unavailable" % url)
+                msg = "%s is unavailable" % url
+                print(msg)
+                return Response(text=msg, status=502)
         else:
             msg = "Don not know how to handle request to '%s'" % path
             print(msg)
-            return Response(text=msg, status=444)
+            return Response(text=msg, status=404)
     finally:
         if response:
             await response.release()
@@ -110,7 +105,7 @@ async def init(loop):
 
     handler = app.make_handler()
     srv = await loop.create_server(handler, 'localhost', PROXY_DEBUGGING_PORT)
-    print("Server started at localhost:%d.\n"
+    print("Server started at localhost:%d\n"
           "Launch Chrome with parameter --remote-debugging-port=%d" % (PROXY_DEBUGGING_PORT, CHROME_DEBUGGING_PORT))
     return app, srv, handler
 
