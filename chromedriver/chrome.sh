@@ -12,15 +12,15 @@ function watch_dog {
     done
 }
 
-CLI_PARAMS=$@
+declare -a CLI_PARAMS=("$@")
 
 DEV_TOOLS_PROXY_BINARY_RE="--devtools-proxy-binary=([^[:space:]]+)"
-if [[ ${CLI_PARAMS} =~ ${DEV_TOOLS_PROXY_BINARY_RE} ]]; then
+if [[ ${CLI_PARAMS[@]} =~ ${DEV_TOOLS_PROXY_BINARY_RE} ]]; then
     DEV_TOOLS_BINARY=${BASH_REMATCH[1]}
 fi
 
 DEV_TOOLS_PROXY_LOG_FILE_RE="--devtools-proxy-log-file=([^[:space:]]+)"
-if [[ ${CLI_PARAMS} =~ ${DEV_TOOLS_PROXY_LOG_FILE_RE} ]]; then
+if [[ ${CLI_PARAMS[@]} =~ ${DEV_TOOLS_PROXY_LOG_FILE_RE} ]]; then
     DEV_TOOLS_PROXY_LOG_FILE=${BASH_REMATCH[1]}
 fi
 
@@ -30,11 +30,13 @@ fi
 
 if [ -n "$DEV_TOOLS_BINARY" ]; then
     CHROME_DEBUGGING_PORT=9222
-    PROXY_DEBUGGING_PORT="--remote-debugging-port=([[:digit:]]+)"
-    if [[ ${CLI_PARAMS} =~ ${PROXY_DEBUGGING_PORT} ]]; then
-        PROXY_DEBUGGING_PORT=${BASH_REMATCH[1]}
-    fi
-    CLI_PARAMS=${CLI_PARAMS//--remote-debugging-port=${PROXY_DEBUGGING_PORT}/--remote-debugging-port=${CHROME_DEBUGGING_PORT}}
+    PROXY_DEBUGGING_PORT_RE="--remote-debugging-port=([[:digit:]]+)"
+    for i in ${!CLI_PARAMS[@]}; do
+        if [[ ${CLI_PARAMS[$i]} =~ ${PROXY_DEBUGGING_PORT_RE} ]]; then
+            PROXY_DEBUGGING_PORT=${BASH_REMATCH[1]}
+            CLI_PARAMS[$i]="--remote-debugging-port=${CHROME_DEBUGGING_PORT}"
+        fi
+    done
 
     ${DEV_TOOLS_BINARY} ${PROXY_DEBUGGING_PORT} > ${DEV_TOOLS_PROXY_LOG_FILE} 2>&1 &
 
@@ -53,4 +55,4 @@ else
     exit 1
 fi
 
-exec -a "$0" "${CHROME_BINARY}" ${CLI_PARAMS}
+exec -a "$0" "${CHROME_BINARY}" "${CLI_PARAMS[@]}"
