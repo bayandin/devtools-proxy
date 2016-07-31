@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 function watch_dog {
-    local PID=$1
+    local CHROME_PID=$1
     local PROXY_PID=$2
     while true; do
-        if ! kill -0 ${PID}; then
+        if ! kill -0 ${CHROME_PID}; then
             kill ${PROXY_PID}
             break
         fi
@@ -12,37 +12,35 @@ function watch_dog {
     done
 }
 
+CHROME_DEBUGGING_PORT=9222
+DEV_TOOLS_PROXY_BINARY_RE="--devtools-proxy-binary=(.+)"
+DEV_TOOLS_PROXY_LOG_FILE=/dev/null
+DEV_TOOLS_PROXY_LOG_FILE_RE="--devtools-proxy-log-file=(.+)"
+PROXY_DEBUGGING_PORT_RE="--remote-debugging-port=([[:digit:]]+)"
+
 declare -a CLI_PARAMS=("$@")
 
-DEV_TOOLS_PROXY_BINARY_RE="--devtools-proxy-binary=([^[:space:]]+)"
-if [[ ${CLI_PARAMS[@]} =~ ${DEV_TOOLS_PROXY_BINARY_RE} ]]; then
-    DEV_TOOLS_BINARY=${BASH_REMATCH[1]}
-fi
+for i in ${!CLI_PARAMS[@]}; do
+    VALUE=${CLI_PARAMS[$i]}
+    if [[ ${VALUE} =~ ${PROXY_DEBUGGING_PORT_RE} ]]; then
+        PROXY_DEBUGGING_PORT=${BASH_REMATCH[1]}
+        PROXY_DEBUGGING_PORT_IDX=${i}
+    elif [[ ${VALUE} =~ ${DEV_TOOLS_PROXY_BINARY_RE} ]]; then
+        DEV_TOOLS_PROXY_BINARY=${BASH_REMATCH[1]}
+        unset CLI_PARAMS[${i}]
+    elif [[ ${VALUE} =~ ${DEV_TOOLS_PROXY_LOG_FILE_RE} ]]; then
+        DEV_TOOLS_PROXY_LOG_FILE=${BASH_REMATCH[1]}
+        unset CLI_PARAMS[${i}]
+    fi
+done
 
-DEV_TOOLS_PROXY_LOG_FILE_RE="--devtools-proxy-log-file=([^[:space:]]+)"
-if [[ ${CLI_PARAMS[@]} =~ ${DEV_TOOLS_PROXY_LOG_FILE_RE} ]]; then
-    DEV_TOOLS_PROXY_LOG_FILE=${BASH_REMATCH[1]}
-fi
+if [ -n "$DEV_TOOLS_PROXY_BINARY" ]; then
+    CLI_PARAMS[$PROXY_DEBUGGING_PORT_IDX]="--remote-debugging-port=${CHROME_DEBUGGING_PORT}"
 
-if [ -z "$DEV_TOOLS_PROXY_LOG_FILE" ]; then
-    DEV_TOOLS_PROXY_LOG_FILE=/dev/null
-fi
-
-if [ -n "$DEV_TOOLS_BINARY" ]; then
-    CHROME_DEBUGGING_PORT=9222
-    PROXY_DEBUGGING_PORT_RE="--remote-debugging-port=([[:digit:]]+)"
-    for i in ${!CLI_PARAMS[@]}; do
-        if [[ ${CLI_PARAMS[$i]} =~ ${PROXY_DEBUGGING_PORT_RE} ]]; then
-            PROXY_DEBUGGING_PORT=${BASH_REMATCH[1]}
-            CLI_PARAMS[$i]="--remote-debugging-port=${CHROME_DEBUGGING_PORT}"
-        fi
-    done
-
-    ${DEV_TOOLS_BINARY} ${PROXY_DEBUGGING_PORT} > ${DEV_TOOLS_PROXY_LOG_FILE} 2>&1 &
-
+    ${DEV_TOOLS_PROXY_BINARY} ${PROXY_DEBUGGING_PORT} > ${DEV_TOOLS_PROXY_LOG_FILE} 2>&1 &
     PROXY_PID=$!
-    CURRENT_PID=$$
-    ( > /dev/null 2>&1 < /dev/null watch_dog ${CURRENT_PID} ${PROXY_PID} & ) &
+    CHROME_PID=$$
+    ( > /dev/null 2>&1 < /dev/null watch_dog ${CHROME_PID} ${PROXY_PID} & ) &
 fi
 
 KERNEL_NAME=$(uname --kernel-name)
