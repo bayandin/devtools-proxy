@@ -15,43 +15,14 @@ CHROME_DEBUGGING_PORT = int(sys.argv[2]) if len(sys.argv) >= 3 else 9222
 CHROME_DEBUGGING_HOST = '127.0.0.1'
 
 
-async def proxy_handler(request):
-    async def transparent_request(session, url):
-        response = await session.get(url)
-        content_type = response.headers[aiohttp.hdrs.CONTENT_TYPE].split(';')[0]  # Could be 'text/html; charset=UTF-8'
-        return Response(status=response.status, body=await response.read(), content_type=content_type)
+async def the_handler(request):
+    response = WebSocketResponse()
 
-    session = aiohttp.ClientSession(loop=request.app.loop)
-    path_qs = request.path_qs
-    url = "http://%s:%s%s" % (CHROME_DEBUGGING_HOST, CHROME_DEBUGGING_PORT, path_qs)
-    try:
-        if request.path == '/json' or request.path == '/json/list':
-            response = await session.get(url)
-            data = await response.json()
-            pattern = re.compile(r"(127\.0\.0\.1|localhost|%s):%d/" % (CHROME_DEBUGGING_HOST, CHROME_DEBUGGING_PORT))
-            for tab in data:
-                for k, v in tab.items():
-                    if ":%d/" % CHROME_DEBUGGING_PORT in v:
-                        tab[k] = pattern.sub("%s:%d/" % (PROXY_DEBUGGING_HOST, PROXY_DEBUGGING_PORT), tab[k])
-            return Response(body=json.dumps(data).encode('utf-8'))
-        else:
-            return await transparent_request(session, url)
-    except (aiohttp.errors.ClientOSError, aiohttp.errors.ClientResponseError):
-        return aiohttp.web.HTTPBadGateway()
-    finally:
-        session.close()
+    ok, _protocol = response.can_prepare(request)
+    return await (ws_handler(request) if ok else proxy_handler(request))
 
 
 async def ws_handler(request):
-    async def from_browser_to_client(ws_from, ws_to):
-        # https://github.com/KeepSafe/aiohttp/commit/8d9ee8b77820a2af11d7c1716f793a610afe306f
-        while True:
-            msg = await ws_to.receive()
-            if msg.tp != MsgType.text:
-                break
-            print('<<', msg.data)
-            ws_from.send_str(msg.data)
-
     ws_client = WebSocketResponse()
     await ws_client.prepare(request)
 
@@ -64,15 +35,9 @@ async def ws_handler(request):
         ws_browser = await session.ws_connect(url, autoclose=False, autoping=False)
         request.app['sockets'].append(ws_browser)
 
-        task = request.app.loop.create_task(from_browser_to_client(ws_client, ws_browser))
-
-        while True:
-            msg = await ws_client.receive()
-            if msg.tp != MsgType.text:
-                break
-            data = msg.data
-            print('>>', data)
-            ws_browser.send_str(data)
+        # https://github.com/KeepSafe/aiohttp/commit/8d9ee8b77820a2af11d7c1716f793a610afe306f
+        task = request.app.loop.create_task(ws_from_to(ws_browser, ws_client, '<<'))
+        await ws_from_to(ws_client, ws_browser, '>>')
     finally:
         if task is not None:
             task.cancel()
@@ -81,11 +46,45 @@ async def ws_handler(request):
     return ws_client
 
 
-async def the_handler(request):
-    response = WebSocketResponse()
+async def ws_from_to(ws_from, ws_to, log_prefix=''):
+    async for msg in ws_from:
+        if msg.tp == MsgType.text:
+            print(log_prefix, msg.data)
+            ws_to.send_str(msg.data)
+        # elif msg.tp == MsgType.error:
+        #     break
+        # elif msg.tp == MsgType.closed:
+        #     break
+        else:
+            break
 
-    ok, _protocol = response.can_prepare(request)
-    return await (ws_handler(request) if ok else proxy_handler(request))
+
+async def proxy_handler(request):
+    session = aiohttp.ClientSession(loop=request.app.loop)
+    path_qs = request.path_qs
+    url = "http://%s:%s%s" % (CHROME_DEBUGGING_HOST, CHROME_DEBUGGING_PORT, path_qs)
+    try:
+        if request.path in ['/json', '/json/list']:
+            response = await session.get(url)
+            data = await response.json()
+            pattern = re.compile(r"(127\.0\.0\.1|localhost|%s):%d/" % (CHROME_DEBUGGING_HOST, CHROME_DEBUGGING_PORT))
+            for tab in data:
+                for k, v in tab.items():
+                    if ":%d/" % CHROME_DEBUGGING_PORT in v:
+                        tab[k] = pattern.sub("%s:%d/" % (PROXY_DEBUGGING_HOST, PROXY_DEBUGGING_PORT), tab[k])
+            return Response(status=response.status, body=json.dumps(data).encode('utf-8'))
+        else:
+            return await transparent_request(session, url)
+    except (aiohttp.errors.ClientOSError, aiohttp.errors.ClientResponseError):
+        return aiohttp.web.HTTPBadGateway()
+    finally:
+        session.close()
+
+
+async def transparent_request(session, url):
+    response = await session.get(url)
+    content_type = response.headers[aiohttp.hdrs.CONTENT_TYPE].split(';')[0]  # Could be 'text/html; charset=UTF-8'
+    return Response(status=response.status, body=await response.read(), content_type=content_type)
 
 
 async def init(loop):
@@ -106,7 +105,8 @@ async def init(loop):
 
 async def finish(app, srv, handler):
     for ws in app['sockets']:
-        ws.close()
+        if not ws.closed:
+            await ws.close()
     app['sockets'].clear()
     await asyncio.sleep(0.1)
     srv.close()
