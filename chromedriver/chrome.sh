@@ -12,7 +12,8 @@ function watch_dog {
     done
 }
 
-CHROME_DEBUGGING_PORT=9222
+KNOWN_PORT=9222
+CHROME_DEBUGGING_PORT=12222
 DEV_TOOLS_PROXY_BINARY_RE="--devtools-proxy-binary=(.+)"
 DEV_TOOLS_PROXY_LOG_FILE=/dev/null
 DEV_TOOLS_PROXY_LOG_FILE_RE="--devtools-proxy-log-file=(.+)"
@@ -37,7 +38,7 @@ done
 if [ -n "$DEV_TOOLS_PROXY_BINARY" ]; then
     CLI_PARAMS[$PROXY_DEBUGGING_PORT_IDX]="--remote-debugging-port=${CHROME_DEBUGGING_PORT}"
 
-    ${DEV_TOOLS_PROXY_BINARY} ${PROXY_DEBUGGING_PORT} > ${DEV_TOOLS_PROXY_LOG_FILE} 2>&1 &
+    ${DEV_TOOLS_PROXY_BINARY} ${KNOWN_PORT},${PROXY_DEBUGGING_PORT} > ${DEV_TOOLS_PROXY_LOG_FILE} 2>&1 &
     PROXY_PID=$!
     CHROME_PID=$$
     ( > /dev/null 2>&1 < /dev/null watch_dog ${CHROME_PID} ${PROXY_PID} & ) &
