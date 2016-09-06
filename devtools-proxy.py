@@ -27,6 +27,9 @@ CHROME_DEBUGGING_PORT = int(sys.argv[2]) if len(sys.argv) >= 3 else 12222
 DEVTOOLS_PATTERN = re.compile(r"(127\.0\.0\.1|localhost|%s):%d/" % (CHROME_DEBUGGING_HOST, CHROME_DEBUGGING_PORT))
 
 
+# def print(*args, **kwargs):
+#     pass
+
 async def the_handler(request):
     response = WebSocketResponse()
 
@@ -68,13 +71,13 @@ async def ws_client_handler(request):
 
     print(log_prefix, 'CONNECTED')
 
-    while True:
-        if app['tabs'][tab_id].get('ws') is None or app['tabs'][tab_id]['ws'].closed:
-            session = aiohttp.ClientSession(loop=app.loop)
-            app['sessions'].append(session)
-            # TODO: handle connection to non-existing tab (in case of typo in tab_id, or try to connect to old one)
-            app['tabs'][tab_id]['ws'] = await session.ws_connect(url, autoclose=False, autoping=False)
+    if app['tabs'][tab_id].get('ws') is None or app['tabs'][tab_id]['ws'].closed:
+        session = aiohttp.ClientSession(loop=app.loop)
+        app['sessions'].append(session)
+        # TODO: handle connection to non-existing tab (in case of typo in tab_id, or try to connect to old one)
+        app['tabs'][tab_id]['ws'] = await session.ws_connect(url, autoclose=False, autoping=False)
 
+    while True:
         if unprocessed_msg:
             data = unprocessed_msg.data
             print(log_prefix, '>>', data)
@@ -141,13 +144,17 @@ async def proxy_handler(request):
                 for k, v in tab.items():
                     if ":%d/" % CHROME_DEBUGGING_PORT in v:
                         tab[k] = DEVTOOLS_PATTERN.sub("%s:%d/" % (PROXY_DEBUGGING_HOST, proxy_debugging_port), tab[k])
+
+                if tab.get('id') is None:
+                    print('[WARN]', "Got a tab without id (which is improbable): %s" % tab)
+                    continue
+
+                devtools_url = "%s:%d/devtools/page/%s" % (PROXY_DEBUGGING_HOST, proxy_debugging_port, tab['id'])
+                if tab.get('webSocketDebuggerUrl') is None:
+                    tab['webSocketDebuggerUrl'] = "ws://%s" % devtools_url
                 if tab.get('devtoolsFrontendUrl') is None:
-                    if tab.get('id') is not None:
-                        tab['devtoolsFrontendUrl'] = "/devtools/inspector.html?ws=%s:%d/devtools/page/%s" % (
-                            PROXY_DEBUGGING_HOST, proxy_debugging_port, tab['id']
-                        )
-                    else:
-                        print('[WARN]', "Got a tab without id (which is improbable): %s" % tab)
+                    tab['devtoolsFrontendUrl'] = "/devtools/inspector.html?ws=%s" % devtools_url
+
             return Response(status=response.status, body=json.dumps(data).encode('utf-8'))
         else:
             return await transparent_request(session, url)
