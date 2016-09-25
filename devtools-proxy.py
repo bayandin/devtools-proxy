@@ -6,7 +6,7 @@ import re
 import sys
 
 import aiohttp
-from aiohttp.web import Application, MsgType, Response, WebSocketResponse
+from aiohttp.web import Application, Response, WebSocketResponse, WSMsgType
 
 from monkey_patch import patch_create_server
 
@@ -33,8 +33,8 @@ DEVTOOLS_PATTERN = re.compile(r"(127\.0\.0\.1|localhost|%s):%d/" % (CHROME_DEBUG
 async def the_handler(request):
     response = WebSocketResponse()
 
-    ok, _protocol = response.can_prepare(request)
-    return await (ws_handler(request) if ok else proxy_handler(request))
+    handler = ws_handler if response.can_prepare(request) else proxy_handler
+    return await handler(request)
 
 
 async def ws_handler(request):
@@ -44,7 +44,7 @@ async def ws_handler(request):
 
     if tabs.get(tab_id) is None:
         app['tabs'][tab_id] = {}
-        # https://github.com/KeepSafe/aiohttp/commit/8d9ee8b77820a2af11d7c1716f793a610afe306f
+        # http://aiohttp.readthedocs.io/en/v1.0.2/faq.html#how-to-receive-an-incoming-events-from-different-sources-in-parallel
         task = app.loop.create_task(ws_browser_handler(request))
         app['tasks'].append(task)
 
@@ -85,7 +85,7 @@ async def ws_client_handler(request):
             unprocessed_msg = None
 
         async for msg in ws_client:
-            if msg.tp == MsgType.text:
+            if msg.type == WSMsgType.TEXT:
                 app['tabs'][tab_id]['active_client'] = ws_client
                 if app['tabs'][tab_id]['ws'].closed:
                     unprocessed_msg = msg
@@ -112,8 +112,8 @@ async def ws_browser_handler(request):
             print("[BROWSER %s]" % tab_id, 'CONNECTED')
 
         async for msg in app['tabs'][tab_id]['ws']:
-            if msg.tp == MsgType.text:
-                if json.loads(msg.data).get('id') is None:
+            if msg.type == WSMsgType.TEXT:
+                if msg.json().get('id') is None:
                     clients = {k: v for k, v in app['clients'].items() if v.get('tab_id') == tab_id}
                     for client in clients.keys():
                         if not client.closed:
@@ -134,7 +134,7 @@ async def proxy_handler(request):
     session = aiohttp.ClientSession(loop=request.app.loop)
     url = "http://%s:%s%s" % (CHROME_DEBUGGING_HOST, CHROME_DEBUGGING_PORT, path_qs)
 
-    print("[HTTP] %s" % path_qs)
+    print("[HTTP %s] %s" % (request.method, path_qs))
     try:
         if request.path in ['/json', '/json/list']:
             response = await session.get(url)
@@ -213,8 +213,8 @@ if __name__ == '__main__':
     patch_create_server()
 
     loop = asyncio.get_event_loop()
-    application, srv, handler = loop.run_until_complete(init(loop))
+    application, srv, hndlr = loop.run_until_complete(init(loop))
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        loop.run_until_complete(finish(application, srv, handler))
+        loop.run_until_complete(finish(application, srv, hndlr))
