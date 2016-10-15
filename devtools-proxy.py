@@ -1,34 +1,15 @@
 #!/usr/bin/env python3
 
+import argparse
 import asyncio
 import json
 import re
-import sys
 
 import aiohttp
 from aiohttp.web import Application, Response, WebSocketResponse, WSMsgType
 
 from monkey_patch import patch_create_server
 
-# When you're too lazy to use argparse, or your tool on «It's just a prototype» stage
-if len(sys.argv) >= 2:
-    if ':' in sys.argv[1]:
-        PROXY_DEBUGGING_HOST, ports = sys.argv[1].split(';')
-        PROXY_DEBUGGING_PORTS = [int(port) for port in ports.split(',')]
-    else:
-        PROXY_DEBUGGING_HOST = '127.0.0.1'
-        PROXY_DEBUGGING_PORTS = [int(port) for port in sys.argv[1].split(',')]
-else:
-    PROXY_DEBUGGING_HOST = '127.0.0.1'
-    PROXY_DEBUGGING_PORTS = [9222]
-
-CHROME_DEBUGGING_HOST = '127.0.0.1'
-CHROME_DEBUGGING_PORT = int(sys.argv[2]) if len(sys.argv) >= 3 else 12222
-DEVTOOLS_PATTERN = re.compile(r"(127\.0\.0\.1|localhost|%s):%d/" % (CHROME_DEBUGGING_HOST, CHROME_DEBUGGING_PORT))
-
-
-# def print(*args, **kwargs):
-#     pass
 
 async def the_handler(request):
     response = WebSocketResponse()
@@ -44,7 +25,7 @@ async def ws_handler(request):
 
     if tabs.get(tab_id) is None:
         app['tabs'][tab_id] = {}
-        # http://aiohttp.readthedocs.io/en/v1.0.2/faq.html#how-to-receive-an-incoming-events-from-different-sources-in-parallel
+        # https://aiohttp.readthedocs.io/en/v1.0.0/faq.html#how-to-receive-an-incoming-events-from-different-sources-in-parallel
         task = app.loop.create_task(ws_browser_handler(request))
         app['tasks'].append(task)
 
@@ -56,7 +37,7 @@ async def ws_client_handler(request):
     app = request.app
     path_qs = request.path_qs
     tab_id = path_qs.split('/')[-1]
-    url = "ws://%s:%d%s" % (CHROME_DEBUGGING_HOST, CHROME_DEBUGGING_PORT, path_qs)
+    url = "ws://%s:%d%s" % (app['chrome_host'], app['chrome_port'], path_qs)
 
     ws_client = WebSocketResponse()
     await ws_client.prepare(request)
@@ -130,26 +111,28 @@ async def ws_browser_handler(request):
 
 
 async def proxy_handler(request):
+    app = request.app
     path_qs = request.path_qs
     session = aiohttp.ClientSession(loop=request.app.loop)
-    url = "http://%s:%s%s" % (CHROME_DEBUGGING_HOST, CHROME_DEBUGGING_PORT, path_qs)
+    url = "http://%s:%s%s" % (app['chrome_host'], app['chrome_port'], path_qs)
 
     print("[HTTP %s] %s" % (request.method, path_qs))
     try:
         if request.path in ['/json', '/json/list']:
             response = await session.get(url)
             data = await response.json()
-            proxy_debugging_port = int(request.host.split(':')[1])
+
+            proxy_host, proxy_port = request.host.split(':')
             for tab in data:
                 for k, v in tab.items():
-                    if ":%d/" % CHROME_DEBUGGING_PORT in v:
-                        tab[k] = DEVTOOLS_PATTERN.sub("%s:%d/" % (PROXY_DEBUGGING_HOST, proxy_debugging_port), tab[k])
+                    if ":%d/" % app['chrome_port'] in v:
+                        tab[k] = app['devtools_pattern'].sub("%s:%s/" % (proxy_host, proxy_port), tab[k])
 
                 if tab.get('id') is None:
                     print('[WARN]', "Got a tab without id (which is improbable): %s" % tab)
                     continue
 
-                devtools_url = "%s:%d/devtools/page/%s" % (PROXY_DEBUGGING_HOST, proxy_debugging_port, tab['id'])
+                devtools_url = "%s:%s/devtools/page/%s" % (proxy_host, proxy_port, tab['id'])
                 if tab.get('webSocketDebuggerUrl') is None:
                     tab['webSocketDebuggerUrl'] = "ws://%s" % devtools_url
                 if tab.get('devtoolsFrontendUrl') is None:
@@ -170,8 +153,10 @@ async def transparent_request(session, url):
     return Response(status=response.status, body=await response.read(), content_type=content_type)
 
 
-async def init(loop):
+async def init(loop, args):
     app = Application(loop=loop)
+    app.update(args)
+
     app['clients'] = {}
     app['tabs'] = {}
     # TODO: Move session and task handling to proper places
@@ -181,11 +166,11 @@ async def init(loop):
     app.router.add_route('*', '/{path:.*}', the_handler)
 
     handler = app.make_handler()
-    srv = await loop.create_server(handler, PROXY_DEBUGGING_HOST, PROXY_DEBUGGING_PORTS)
+    srv = await loop.create_server(handler, app['proxy_hosts'], app['proxy_ports'])
     print(
         "Server started at %s:%s\n"
-        "Use --remote-debugging-port=%d for Chrome" % (
-            PROXY_DEBUGGING_HOST, PROXY_DEBUGGING_PORTS, CHROME_DEBUGGING_PORT
+        "Use --remote-debugging-port=%d --remote-debugging-address=%s for Chrome" % (
+            app['proxy_hosts'], app['proxy_ports'], app['chrome_port'], app['chrome_host']
         )
     )
     return app, srv, handler
@@ -209,12 +194,35 @@ async def finish(app, srv, handler):
     await srv.wait_closed()
 
 
-if __name__ == '__main__':
-    patch_create_server()
+def main():
+    parser = argparse.ArgumentParser(description='DevTools proxy — …')
+    parser.add_argument('--host', default=['127.0.0.1'], type=str, nargs='*', help='')
+    parser.add_argument('--port', default=[9222], type=int, nargs='*', help='')
+    parser.add_argument('--chrome-host', default='127.0.0.1', type=str, help='')
+    parser.add_argument('--chrome-port', default=12222, type=int, help='')
+    parser.add_argument('--debug', default=False, action='store_true', help='')
+    args = parser.parse_args()
+
+    arguments = {
+        'debug': args.debug,
+        'proxy_hosts': args.host,
+        'proxy_ports': args.port,
+        'chrome_host': args.chrome_host,
+        'chrome_port': args.chrome_port,
+        'devtools_pattern': re.compile(r"(127\.0\.0\.1|localhost|%s):%d/" % (args.chrome_host, args.chrome_port)),
+    }
 
     loop = asyncio.get_event_loop()
-    application, srv, hndlr = loop.run_until_complete(init(loop))
+    if args.debug:
+        loop.set_debug(True)
+
+    application, srv, handler = loop.run_until_complete(init(loop, arguments))
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        loop.run_until_complete(finish(application, srv, hndlr))
+        loop.run_until_complete(finish(application, srv, handler))
+
+
+if __name__ == '__main__':
+    patch_create_server()
+    main()
