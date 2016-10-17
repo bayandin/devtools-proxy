@@ -50,7 +50,7 @@ if [ -n "$DEV_TOOLS_PROXY_BINARY" ]; then
     CLI_PARAMS[$PROXY_DEBUGGING_PORT_IDX]="--remote-debugging-port=${CHROME_DEBUGGING_PORT}"
 
     PORTS="${KNOWN_PORT} ${PROXY_DEBUGGING_PORT}"
-    ${DEV_TOOLS_PROXY_BINARY} --port ${PORTS} > ${DEV_TOOLS_PROXY_LOG_FILE} 2>&1 &
+    ${DEV_TOOLS_PROXY_BINARY} --port ${PORTS} --chrome-port ${CHROME_DEBUGGING_PORT} > ${DEV_TOOLS_PROXY_LOG_FILE} 2>&1 &
     PROXY_PID=$!
     CHROME_PID=$$
     ( > /dev/null 2>&1 < /dev/null watch_dog ${CHROME_PID} ${PROXY_PID} & ) &
