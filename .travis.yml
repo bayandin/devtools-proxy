@@ -1,0 +1,43 @@
+language: python
+
+python:
+  - "3.5.2"
+
+sudo: required
+
+cache: pip
+
+env:
+  global:
+    - DISPLAY=:99.0
+  matrix:
+    - DEVTOOLS_PROXY=on
+    - DEVTOOLS_PROXY=off
+
+matrix:
+  fast_finish: true
+  allow_failures:
+    - DEVTOOLS_PROXY=off
+
+before_install:
+  - |
+      sudo apt-get -y purge chromium-browser
+      export CHROME_REVISION=`curl -s http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/LAST_CHANGE`
+      curl -L -O "http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/${CHROME_REVISION}/chrome-linux.zip"
+      unzip chrome-linux.zip
+      sudo ln -sf $PWD/chrome-linux/chrome-wrapper /usr/local/bin/chrome
+      export CHROMEDRIVER_VERSION=`curl -s http://chromedriver.storage.googleapis.com/LATEST_RELEASE`
+      curl -L -O "http://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+      unzip -o chromedriver_linux64.zip -d /tmp/ && chmod +x /tmp/chromedriver && sudo mv /tmp/chromedriver /usr/local/bin/chromedriver
+
+install:
+  - pip install -Ur requirements-dev.txt
+
+before_script:
+  - sh -e /etc/init.d/xvfb start
+
+script:
+  - ./run-selenium-tests.sh
+
+notifications:
+  email: false

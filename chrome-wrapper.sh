@@ -1,5 +1,23 @@
 #!/usr/bin/env bash
 
+# TODO: Add parameter for real Chrome binary ( --chrome-binary=(.+) )
+# TODO: Extend find_binary function for macOS
+
+function find_binary {
+    local FILE_PATH
+
+    # https://chromium.googlesource.com/chromium/src/+/2729e442b1172c5094503a03fe356c8580bb919d/chrome/test/chromedriver/chrome/chrome_finder.cc
+    for file in "google-chrome" "chrome" "chromium" "chromium-browser"; do
+        for path in "/opt/google/chrome" "/usr/local/bin" "/usr/local/sbin" "/usr/bin" "/usr/sbin" "/bin" "/sbin"; do
+            FILE_PATH="${path}/${file}"
+            if [ -e ${FILE_PATH} ]; then
+                echo -n ${FILE_PATH}
+                return
+            fi
+        done
+    done
+}
+
 function watch_dog {
     local CHROME_PID=$1
     local PROXY_PID=$2
@@ -58,7 +76,7 @@ fi
 
 KERNEL_NAME=$(uname --kernel-name)
 if [ ${KERNEL_NAME} == 'Linux' ]; then
-    CHROME_BINARY="/opt/google/chrome/google-chrome"
+    CHROME_BINARY=$(find_binary)
 elif [ ${KERNEL_NAME} == 'Darwin' ]; then
     CHROME_BINARY="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 else

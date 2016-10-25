@@ -1,0 +1,3 @@
+[submodule "tests/compatibility/selenium"]
+	path = tests/compatibility/selenium
+	url = https://github.com/SeleniumHQ/selenium.git
