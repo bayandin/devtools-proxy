@@ -17,8 +17,6 @@ env:
 
 matrix:
   fast_finish: true
-  allow_failures:
-    - env: DEVTOOLS_PROXY=off
 
 before_install:
   - |
