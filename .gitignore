@@ -1,0 +1,6 @@
+*.log
+.cache
+.debug
+
+__pycache__/
+*.py[cod]

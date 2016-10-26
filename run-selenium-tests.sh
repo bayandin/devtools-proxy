@@ -6,6 +6,7 @@ readonly PROXY_EXECUTABLE="${PROJECT_DIR}/devtools-proxy.py"
 readonly DEBUG_DIR="${PROJECT_DIR}/.debug"
 readonly DEVTOOLS_PROXY=${DEVTOOLS_PROXY:-on}
 readonly DEBUG=${DEBUG:-off}
+# TODO: Remove PATCH after release of the next version of Selenium 3.0.2 or 3.1.0
 readonly PATCH=$(curl https://patch-diff.githubusercontent.com/raw/SeleniumHQ/selenium/pull/2936.diff)
 readonly DEVTOOLS_PROXY_ON_PATCH=$(cat <<-END
 --- conftest.py
@@ -58,8 +59,8 @@ readonly DEVTOOLS_PROXY_ON_PATCH=$(cat <<-END
 END
 )
 
-rm -rf "${PROJECT_DIR:?}/${DEBUG_DIR}"
-mkdir -p "${PROJECT_DIR}/${DEBUG_DIR}"
+rm -rf "${DEBUG_DIR}"
+mkdir -p "${DEBUG_DIR}"
 rm -rf "${PROJECT_DIR}/.cache/"
 
 echo "$DEVTOOLS_PROXY_ON_PATCH" | patch -N -p0 -d "${PROJECT_DIR}/tests/compatibility/selenium"

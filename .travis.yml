@@ -11,8 +11,9 @@ env:
   global:
     - DISPLAY=:99.0
   matrix:
-    - DEVTOOLS_PROXY=on
-    - DEVTOOLS_PROXY=off
+    - SCRIPT=run-selenium-tests.sh DEVTOOLS_PROXY=on
+    - SCRIPT=run-selenium-tests.sh DEVTOOLS_PROXY=off
+    - SCRIPT=run-integration-tests.sh
 
 matrix:
   fast_finish: true
@@ -37,7 +38,7 @@ before_script:
   - sh -e /etc/init.d/xvfb start
 
 script:
-  - ./run-selenium-tests.sh
+  - bash ${SCRIPT}
 
 notifications:
   email: false
