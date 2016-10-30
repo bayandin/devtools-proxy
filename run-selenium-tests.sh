@@ -58,9 +58,10 @@ readonly DEVTOOLS_PROXY_ON_PATCH=$(cat <<-END
      if driver_class == 'Firefox':
 END
 )
-
-rm -rf "${DEBUG_DIR}"
-mkdir -p "${DEBUG_DIR}"
+if [ "${DEBUG}" == "on" ]; then
+    rm -rf "${DEBUG_DIR}"
+    mkdir -p "${DEBUG_DIR}"
+fi
 rm -rf "${PROJECT_DIR}/.cache/"
 
 echo "$DEVTOOLS_PROXY_ON_PATCH" | patch -N -p0 -d "${PROJECT_DIR}/tests/compatibility/selenium"

@@ -18,7 +18,9 @@ class TestCase(object):
             'args': [
                 '--devtools-proxy-binary={}/devtools-proxy.py'.format(PROJECT_DIR),
                 '--devtools-proxy-port={}'.format(self.devtools_proxy_port),
-                '--devtools-proxy-chrome-debugging-port={}'.format(free_port())
+                '--devtools-proxy-chrome-debugging-port={}'.format(free_port()),
+                # '--devtools-proxy-log-file={}/devtools-proxy-{}.log'.format(PROJECT_DIR, self.devtools_proxy_port),
+                '--devtools-proxy-args=--max-clients 4'
             ],
         }
 

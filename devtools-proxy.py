@@ -3,12 +3,32 @@
 import argparse
 import asyncio
 import json
+import math
 import re
+from functools import partial
 
 import aiohttp
 from aiohttp.web import Application, Response, WebSocketResponse, WSMsgType
 
 from monkey_patch import patch_create_server
+
+BITS = 31
+
+
+def encode_id_raw(client_id, request_id, max_request_id, bits_for_client_id):
+    if request_id > max_request_id:
+        raise OverflowError
+
+    res = (client_id << BITS - bits_for_client_id) | request_id
+
+    return res
+
+
+def decode_id_raw(encoded_id, max_request_id, bits_for_client_id):
+    client_id = encoded_id >> (BITS - bits_for_client_id)
+    request_id = encoded_id & max_request_id
+
+    return client_id, request_id
 
 
 async def the_handler(request):
@@ -38,17 +58,21 @@ async def ws_client_handler(request):
     path_qs = request.path_qs
     tab_id = path_qs.split('/')[-1]
     url = "ws://%s:%d%s" % (app['chrome_host'], app['chrome_port'], path_qs)
+    encode_id = app['f']['encode_id']
+    client_id = len(app['clients'])
+    log_prefix = "[CLIENT %d]" % client_id
 
     ws_client = WebSocketResponse()
     await ws_client.prepare(request)
 
-    client_id = len(app['clients']) + 1
+    if client_id >= app['max_clients']:
+        print(log_prefix, 'CONNECTION FAILED')
+        return ws_client
+
     app['clients'][ws_client] = {
         'id': client_id,
         'tab_id': tab_id
     }
-
-    log_prefix = "[CLIENT %d]" % client_id
 
     print(log_prefix, 'CONNECTED')
 
@@ -60,21 +84,24 @@ async def ws_client_handler(request):
 
     while True:
         if unprocessed_msg:
-            data = unprocessed_msg.data
+            data = unprocessed_msg.json()
+            data['id'] = encode_id(client_id, data['id'])
             print(log_prefix, '>>', data)
-            app['tabs'][tab_id]['ws'].send_str(data)
+            app['tabs'][tab_id]['ws'].send_json(data)
             unprocessed_msg = None
 
         async for msg in ws_client:
             if msg.type == WSMsgType.TEXT:
-                app['tabs'][tab_id]['active_client'] = ws_client
                 if app['tabs'][tab_id]['ws'].closed:
                     unprocessed_msg = msg
                     print(log_prefix, 'RECONNECTED')
                     break
-                data = msg.data
+                data = msg.json()
+
+                data['id'] = encode_id(client_id, data['id'])
                 print(log_prefix, '>>', data)
-                app['tabs'][tab_id]['ws'].send_str(data)
+
+                app['tabs'][tab_id]['ws'].send_json(data)
             else:
                 print(log_prefix, 'DISCONNECTED')
                 return ws_client
@@ -84,6 +111,7 @@ async def ws_browser_handler(request):
     log_prefix = '<<'
     app = request.app
     tab_id = request.path_qs.split('/')[-1]
+    decode_id = app['f']['decode_id']
 
     while True:
         while app['tabs'][tab_id].get('ws') is None or app['tabs'][tab_id]['ws'].closed:
@@ -94,7 +122,8 @@ async def ws_browser_handler(request):
 
         async for msg in app['tabs'][tab_id]['ws']:
             if msg.type == WSMsgType.TEXT:
-                if msg.json().get('id') is None:
+                data = msg.json()
+                if data.get('id') is None:
                     clients = {k: v for k, v in app['clients'].items() if v.get('tab_id') == tab_id}
                     for client in clients.keys():
                         if not client.closed:
@@ -102,9 +131,11 @@ async def ws_browser_handler(request):
                             print('[CLIENT %d]' % client_id, log_prefix, msg.data)
                             client.send_str(msg.data)
                 else:
-                    client_id = app['clients'][app['tabs'][tab_id]['active_client']]['id']
-                    print('[CLIENT %d]' % client_id, log_prefix, msg.data)
-                    app['tabs'][tab_id]['active_client'].send_str(msg.data)
+                    client_id, request_id = decode_id(data['id'])
+                    print('[CLIENT %d]' % client_id, log_prefix, data)
+                    data['id'] = request_id
+                    ws = next(ws for ws, client in app['clients'].items() if client['id'] == client_id)
+                    ws.send_json(data)
             else:
                 print("[BROWSER %s]" % tab_id, 'DISCONNECTED')
                 break
@@ -195,15 +226,28 @@ async def finish(app, srv, handler):
 
 
 def main():
+    def bits(x):
+        return math.ceil(math.log2(x))
+
     parser = argparse.ArgumentParser(description='DevTools proxy — …')
     parser.add_argument('--host', default=['127.0.0.1'], type=str, nargs='*', help='')
     parser.add_argument('--port', default=[9222], type=int, nargs='*', help='')
     parser.add_argument('--chrome-host', default='127.0.0.1', type=str, help='')
     parser.add_argument('--chrome-port', default=12222, type=int, help='')
+    parser.add_argument('--max-clients', default=2, type=int, help='')
     parser.add_argument('--debug', default=False, action='store_true', help='')
     args = parser.parse_args()
 
+    bits_for_client_id = bits(args.max_clients)
+    max_clients = 2 ** bits_for_client_id
+    max_request_id = 2 ** (BITS - bits_for_client_id) - 1
+
     arguments = {
+        'f': {
+            'encode_id': partial(encode_id_raw, max_request_id=max_request_id, bits_for_client_id=bits_for_client_id),
+            'decode_id': partial(decode_id_raw, max_request_id=max_request_id, bits_for_client_id=bits_for_client_id),
+        },
+        'max_clients': max_clients,
         'debug': args.debug,
         'proxy_hosts': args.host,
         'proxy_ports': args.port,

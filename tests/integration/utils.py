@@ -15,11 +15,12 @@ def free_port():
 
 
 @contextlib.contextmanager
-def devtools_proxy_ws(port):
+def devtools_proxy_ws(port, timeout=2):
     tabs = requests.get('http://localhost:{}/json/list'.format(port)).json()
     tab = next(tab for tab in tabs if tab.get('type') == 'page')
     devtools_url = tab['webSocketDebuggerUrl']
 
     ws = websocket.create_connection(devtools_url)
+    ws.timeout = timeout
     yield ws
     ws.close()
