@@ -79,8 +79,11 @@ async def ws_client_handler(request):
     if app['tabs'][tab_id].get('ws') is None or app['tabs'][tab_id]['ws'].closed:
         session = aiohttp.ClientSession(loop=app.loop)
         app['sessions'].append(session)
-        # TODO: handle connection to non-existing tab (in case of typo in tab_id, or try to connect to old one)
-        app['tabs'][tab_id]['ws'] = await session.ws_connect(url, autoclose=False, autoping=False)
+        try:
+            app['tabs'][tab_id]['ws'] = await session.ws_connect(url, autoclose=False, autoping=False)
+        except aiohttp.WSServerHandshakeError:
+            print(log_prefix, 'CONNECTION ERROR: %s' % tab_id)
+            return ws_client
 
     while True:
         if unprocessed_msg:
