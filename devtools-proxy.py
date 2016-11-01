@@ -113,12 +113,18 @@ async def ws_browser_handler(request):
     tab_id = request.path_qs.split('/')[-1]
     decode_id = app['f']['decode_id']
 
+    timeout = 10
+    interval = 0.1
+
     while True:
-        while app['tabs'][tab_id].get('ws') is None or app['tabs'][tab_id]['ws'].closed:
-            await asyncio.sleep(0.1)
-            print("[BROWSER %s]" % tab_id, 'WAITED')
+        for i in range(math.ceil(timeout / interval)):
+            if app['tabs'][tab_id].get('ws') is not None and not app['tabs'][tab_id]['ws'].closed:
+                print("[BROWSER %s]" % tab_id, 'CONNECTED')
+                break
+            await asyncio.sleep(interval)
         else:
-            print("[BROWSER %s]" % tab_id, 'CONNECTED')
+            print("[BROWSER %s]" % tab_id, 'DISCONNECTED')
+            return
 
         async for msg in app['tabs'][tab_id]['ws']:
             if msg.type == WSMsgType.TEXT:
