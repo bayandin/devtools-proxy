@@ -80,7 +80,7 @@ async def ws_client_handler(request):
         session = aiohttp.ClientSession(loop=app.loop)
         app['sessions'].append(session)
         try:
-            app['tabs'][tab_id]['ws'] = await session.ws_connect(url, autoclose=False, autoping=False)
+            app['tabs'][tab_id]['ws'] = await session.ws_connect(url)
         except aiohttp.WSServerHandshakeError:
             print(log_prefix, 'CONNECTION ERROR: %s' % tab_id)
             return ws_client
