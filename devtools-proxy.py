@@ -53,7 +53,6 @@ async def ws_handler(request):
 
 
 async def ws_client_handler(request):
-    unprocessed_msg = None
     app = request.app
     path_qs = request.path_qs
     tab_id = path_qs.split('/')[-1]
@@ -85,29 +84,20 @@ async def ws_client_handler(request):
             print(log_prefix, 'CONNECTION ERROR: %s' % tab_id)
             return ws_client
 
-    while True:
-        if unprocessed_msg:
-            data = unprocessed_msg.json()
+    async for msg in ws_client:
+        if msg.type == WSMsgType.TEXT:
+            if app['tabs'][tab_id]['ws'].closed:
+                print(log_prefix, 'RECONNECTED')
+                break
+            data = msg.json()
+
             data['id'] = encode_id(client_id, data['id'])
             print(log_prefix, '>>', data)
+
             app['tabs'][tab_id]['ws'].send_json(data)
-            unprocessed_msg = None
-
-        async for msg in ws_client:
-            if msg.type == WSMsgType.TEXT:
-                if app['tabs'][tab_id]['ws'].closed:
-                    unprocessed_msg = msg
-                    print(log_prefix, 'RECONNECTED')
-                    break
-                data = msg.json()
-
-                data['id'] = encode_id(client_id, data['id'])
-                print(log_prefix, '>>', data)
-
-                app['tabs'][tab_id]['ws'].send_json(data)
-            else:
-                print(log_prefix, 'DISCONNECTED')
-                return ws_client
+    else:
+        print(log_prefix, 'DISCONNECTED')
+        return ws_client
 
 
 async def ws_browser_handler(request):
@@ -119,35 +109,34 @@ async def ws_browser_handler(request):
     timeout = 10
     interval = 0.1
 
-    while True:
-        for i in range(math.ceil(timeout / interval)):
-            if app['tabs'][tab_id].get('ws') is not None and not app['tabs'][tab_id]['ws'].closed:
-                print("[BROWSER %s]" % tab_id, 'CONNECTED')
-                break
-            await asyncio.sleep(interval)
-        else:
-            print("[BROWSER %s]" % tab_id, 'DISCONNECTED')
-            return
+    for i in range(math.ceil(timeout / interval)):
+        if app['tabs'][tab_id].get('ws') is not None and not app['tabs'][tab_id]['ws'].closed:
+            print("[BROWSER %s]" % tab_id, 'CONNECTED')
+            break
+        await asyncio.sleep(interval)
+    else:
+        print("[BROWSER %s]" % tab_id, 'DISCONNECTED')
+        return
 
-        async for msg in app['tabs'][tab_id]['ws']:
-            if msg.type == WSMsgType.TEXT:
-                data = msg.json()
-                if data.get('id') is None:
-                    clients = {k: v for k, v in app['clients'].items() if v.get('tab_id') == tab_id}
-                    for client in clients.keys():
-                        if not client.closed:
-                            client_id = app['clients'][client]['id']
-                            print('[CLIENT %d]' % client_id, log_prefix, msg.data)
-                            client.send_str(msg.data)
-                else:
-                    client_id, request_id = decode_id(data['id'])
-                    print('[CLIENT %d]' % client_id, log_prefix, data)
-                    data['id'] = request_id
-                    ws = next(ws for ws, client in app['clients'].items() if client['id'] == client_id)
-                    ws.send_json(data)
+    async for msg in app['tabs'][tab_id]['ws']:
+        if msg.type == WSMsgType.TEXT:
+            data = msg.json()
+            if data.get('id') is None:
+                clients = {k: v for k, v in app['clients'].items() if v.get('tab_id') == tab_id}
+                for client in clients.keys():
+                    if not client.closed:
+                        client_id = app['clients'][client]['id']
+                        print('[CLIENT %d]' % client_id, log_prefix, msg.data)
+                        client.send_str(msg.data)
             else:
-                print("[BROWSER %s]" % tab_id, 'DISCONNECTED')
-                break
+                client_id, request_id = decode_id(data['id'])
+                print('[CLIENT %d]' % client_id, log_prefix, data)
+                data['id'] = request_id
+                ws = next(ws for ws, client in app['clients'].items() if client['id'] == client_id)
+                ws.send_json(data)
+    else:
+        print("[BROWSER %s]" % tab_id, 'DISCONNECTED')
+        return
 
 
 async def proxy_handler(request):
