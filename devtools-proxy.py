@@ -12,17 +12,9 @@ from aiohttp.web import Application, Response, WebSocketResponse, WSMsgType
 from monkey_patch import patch_create_server
 
 try:
-    import ujson
-
-    print('Using ujson')
-
-    json_loads = ujson.loads
-    json_dumps = ujson.dumps
+    import ujson as json
 except ImportError:
     import json
-
-    json_loads = json.loads
-    json_dumps = json.dumps
 
 BITS = 31
 
@@ -101,12 +93,12 @@ async def ws_client_handler(request):
             if app['tabs'][tab_id]['ws'].closed:
                 print(log_prefix, 'RECONNECTED')
                 break
-            data = msg.json(loads=json_loads)
+            data = msg.json(loads=json.loads)
 
             data['id'] = encode_id(client_id, data['id'])
             print(log_prefix, '>>', data)
 
-            app['tabs'][tab_id]['ws'].send_json(data, dumps=json_dumps)
+            app['tabs'][tab_id]['ws'].send_json(data, dumps=json.dumps)
     else:
         print(log_prefix, 'DISCONNECTED')
         return ws_client
@@ -132,7 +124,7 @@ async def ws_browser_handler(request):
 
     async for msg in app['tabs'][tab_id]['ws']:
         if msg.type == WSMsgType.TEXT:
-            data = msg.json(loads=json_loads)
+            data = msg.json(loads=json.loads)
             if data.get('id') is None:
                 clients = {k: v for k, v in app['clients'].items() if v.get('tab_id') == tab_id}
                 for client in clients.keys():
@@ -145,7 +137,7 @@ async def ws_browser_handler(request):
                 print('[CLIENT %d]' % client_id, log_prefix, data)
                 data['id'] = request_id
                 ws = next(ws for ws, client in app['clients'].items() if client['id'] == client_id)
-                ws.send_json(data, dumps=json_dumps)
+                ws.send_json(data, dumps=json.dumps)
     else:
         print("[BROWSER %s]" % tab_id, 'DISCONNECTED')
         return
@@ -161,7 +153,7 @@ async def proxy_handler(request):
     try:
         if request.path in ['/json', '/json/list']:
             response = await session.get(url)
-            data = await response.json(loads=json_loads)
+            data = await response.json(loads=json.loads)
 
             proxy_host, proxy_port = request.host.split(':')
             for tab in data:
@@ -179,7 +171,7 @@ async def proxy_handler(request):
                 if tab.get('devtoolsFrontendUrl') is None:
                     tab['devtoolsFrontendUrl'] = "/devtools/inspector.html?ws=%s" % devtools_url
 
-            return Response(status=response.status, body=json_dumps(data).encode('utf-8'))
+            return Response(status=response.status, body=json.dumps(data).encode('utf-8'))
         else:
             return await transparent_request(session, url)
     except (aiohttp.errors.ClientOSError, aiohttp.errors.ClientResponseError) as exc:
