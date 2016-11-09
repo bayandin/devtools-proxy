@@ -1,1 +1,2 @@
 aiohttp==1.1.2
+ujson==1.35
