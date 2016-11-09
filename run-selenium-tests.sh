@@ -58,10 +58,6 @@ readonly DEVTOOLS_PROXY_ON_PATCH=$(cat <<-END
      if driver_class == 'Firefox':
 END
 )
-if [ "${DEBUG}" == "on" ]; then
-    rm -rf "${DEBUG_DIR}"
-    mkdir -p "${DEBUG_DIR}"
-fi
 rm -rf "${PROJECT_DIR}/.cache/"
 
 echo "$DEVTOOLS_PROXY_ON_PATCH" | patch -N -p0 -d "${PROJECT_DIR}/tests/compatibility/selenium"
@@ -71,6 +67,9 @@ py.test -n=auto --driver=Chrome "${PROJECT_DIR}/tests/compatibility/selenium/"
 EXIT_CODE=$?
 
 if [ -n "${CI}" ] && [ "${EXIT_CODE}" != "0" ]; then
+    rm -rf "${DEBUG_DIR}"
+    mkdir -p "${DEBUG_DIR}"
+
     DEBUG=on py.test -n=auto --driver=Chrome --verbose --instafail --last-failed "${PROJECT_DIR}/tests/compatibility/selenium"
     EXIT_CODE=$?
 fi
