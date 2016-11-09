@@ -9,8 +9,6 @@ from functools import partial
 import aiohttp
 from aiohttp.web import Application, Response, WebSocketResponse, WSMsgType
 
-from monkey_patch import patch_create_server
-
 try:
     import ujson as json
 except ImportError:
@@ -199,17 +197,24 @@ async def init(loop, args):
     app.router.add_route('*', '/{path:.*}', the_handler)
 
     handler = app.make_handler()
-    srv = await loop.create_server(handler, app['proxy_hosts'], app['proxy_ports'])
+
+    # Simplify after Python 3.6 release (with async comprehensions)
+    # Simplify it even more when http://bugs.python.org/issue27665 will be ready :)
+    srvs = []
+    for proxy_port in app['proxy_ports']:
+        srv = await loop.create_server(handler, app['proxy_hosts'], proxy_port)
+        srvs.append(srv)
+
     print(
         "Server started at %s:%s\n"
         "Use --remote-debugging-port=%d --remote-debugging-address=%s for Chrome" % (
             app['proxy_hosts'], app['proxy_ports'], app['chrome_port'], app['chrome_host']
         )
     )
-    return app, srv, handler
+    return app, srvs, handler
 
 
-async def finish(app, srv, handler):
+async def finish(app, srvs, handler):
     for ws in list(app['clients'].keys()) + [tab['ws'] for tab in app['tabs'].values() if tab.get('ws') is not None]:
         if not ws.closed:
             await ws.close()
@@ -222,9 +227,13 @@ async def finish(app, srv, handler):
         task.cancel()
 
     await asyncio.sleep(0.1)
-    srv.close()
+    for srv in srvs:
+        srv.close()
+
     await handler.finish_connections()
-    await srv.wait_closed()
+
+    for srv in srvs:
+        await srv.wait_closed()
 
 
 def main():
@@ -252,7 +261,7 @@ def main():
         'max_clients': max_clients,
         'debug': args.debug,
         'proxy_hosts': args.host,
-        'proxy_ports': args.port,
+        'proxy_ports': set(args.port),
         'chrome_host': args.chrome_host,
         'chrome_port': args.chrome_port,
         'devtools_pattern': re.compile(r"(127\.0\.0\.1|localhost|%s):%d/" % (args.chrome_host, args.chrome_port)),
@@ -262,13 +271,12 @@ def main():
     if args.debug:
         loop.set_debug(True)
 
-    application, srv, handler = loop.run_until_complete(init(loop, arguments))
+    application, srvs, handler = loop.run_until_complete(init(loop, arguments))
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        loop.run_until_complete(finish(application, srv, handler))
+        loop.run_until_complete(finish(application, srvs, handler))
 
 
 if __name__ == '__main__':
-    patch_create_server()
     main()
