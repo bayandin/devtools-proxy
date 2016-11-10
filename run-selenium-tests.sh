@@ -4,8 +4,8 @@ readonly PROJECT_DIR="$(dirname "$(readlink -f "$0")")"
 readonly CHROME_WRAPPER="${PROJECT_DIR}/chrome-wrapper.sh"
 readonly PROXY_EXECUTABLE="${PROJECT_DIR}/devtools-proxy.py"
 readonly DEBUG_DIR="${PROJECT_DIR}/.debug"
-readonly DEVTOOLS_PROXY=${DEVTOOLS_PROXY:-on}
-DEBUG=${DEBUG:-off}
+readonly DEVTOOLS_PROXY=${DEVTOOLS_PROXY:-true}
+DEBUG=${DEBUG:-false}
 # TODO: Remove PATCH after release of the next version of Selenium 3.0.2 or 3.1.0
 readonly PATCH=$(curl https://patch-diff.githubusercontent.com/raw/SeleniumHQ/selenium/pull/2936.diff)
 readonly DEVTOOLS_PROXY_ON_PATCH=$(cat <<-END
@@ -33,8 +33,8 @@ readonly DEVTOOLS_PROXY_ON_PATCH=$(cat <<-END
          pytest.skip(reason)
 
 +    if driver_class == 'Chrome':
-+        debug = os.environ.get('DEBUG') == 'on'
-+        devtools_proxy = os.environ.get('DEVTOOLS_PROXY') == 'on'
++        debug = os.environ.get('DEBUG') == 'true'
++        devtools_proxy = os.environ.get('DEVTOOLS_PROXY') == 'true'
 +        port = free_port()
 +        capabilities = DesiredCapabilities.CHROME.copy()
 +        if devtools_proxy:
@@ -70,7 +70,7 @@ if [ -n "${CI}" ] && [ "${EXIT_CODE}" != "0" ]; then
     rm -rf "${DEBUG_DIR}"
     mkdir -p "${DEBUG_DIR}"
 
-    DEBUG=on py.test -n=auto --driver=Chrome --verbose --instafail --last-failed "${PROJECT_DIR}/tests/compatibility/selenium"
+    DEBUG=true py.test -n=auto --driver=Chrome --verbose --instafail --last-failed "${PROJECT_DIR}/tests/compatibility/selenium"
     EXIT_CODE=$?
 fi
 

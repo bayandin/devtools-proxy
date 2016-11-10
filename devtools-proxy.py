@@ -3,23 +3,22 @@
 import argparse
 import asyncio
 import math
+import os
 import re
 from functools import partial
 
 import aiohttp
 from aiohttp.web import Application, Response, WebSocketResponse, WSMsgType
 
-try:
+if os.environ.get('DTP_UJSON', '').lower() == 'true':
+    import ujson as json
+else:
+    import json
+
+if os.environ.get('DTP_UVLOOP', '').lower() == 'true':
     import uvloop
 
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-except ImportError:
-    pass
-
-try:
-    import ujson as json
-except ImportError:
-    import json
 
 BITS = 31
 

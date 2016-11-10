@@ -11,14 +11,20 @@ env:
   global:
     - DISPLAY=:99.0
   matrix:
-    - SCRIPT=run-selenium-tests.sh DEVTOOLS_PROXY=on
-    - SCRIPT=run-selenium-tests.sh DEVTOOLS_PROXY=off
     - SCRIPT=run-integration-tests.sh
+    - SCRIPT=run-selenium-tests.sh DEVTOOLS_PROXY=true
+    - SCRIPT=run-selenium-tests.sh DEVTOOLS_PROXY=true DTP_UJSON=true
+    - SCRIPT=run-selenium-tests.sh DEVTOOLS_PROXY=true DTP_UVLOOP=true
+    - SCRIPT=run-selenium-tests.sh DEVTOOLS_PROXY=true DTP_UJSON=true DTP_UVLOOP=true
+    - SCRIPT=run-selenium-tests.sh DEVTOOLS_PROXY=false
 
 matrix:
   fast_finish: true
   allow_failures:
-    - env: SCRIPT=run-selenium-tests.sh DEVTOOLS_PROXY=off
+    - env: SCRIPT=run-selenium-tests.sh DEVTOOLS_PROXY=false
+    - env: SCRIPT=run-selenium-tests.sh DEVTOOLS_PROXY=true DTP_UJSON=true
+    - env: SCRIPT=run-selenium-tests.sh DEVTOOLS_PROXY=true DTP_UVLOOP=true
+    - env: SCRIPT=run-selenium-tests.sh DEVTOOLS_PROXY=true DTP_UJSON=true DTP_UVLOOP=true
 
 before_install:
   - |
