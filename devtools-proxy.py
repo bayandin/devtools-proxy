@@ -8,14 +8,16 @@ import re
 from functools import partial
 
 import aiohttp
-from aiohttp.web import Application, Response, WebSocketResponse, WSMsgType
+from aiohttp.web import Application, Response, WebSocketResponse, WSMsgType, json_response
 
-if os.environ.get('DTP_UJSON', '').lower() == 'true':
+with_ujson = os.environ.get('DTP_UJSON', '').lower() == 'true'
+if with_ujson:
     import ujson as json
 else:
     import json
 
-if os.environ.get('DTP_UVLOOP', '').lower() == 'true':
+with_uvloop = os.environ.get('DTP_UVLOOP', '').lower() == 'true'
+if with_uvloop:
     import uvloop
 
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -175,7 +177,7 @@ async def proxy_handler(request):
                 if tab.get('devtoolsFrontendUrl') is None:
                     tab['devtoolsFrontendUrl'] = "/devtools/inspector.html?ws=%s" % devtools_url
 
-            return Response(status=response.status, body=json.dumps(data).encode('utf-8'))
+            return json_response(status=response.status, data=data, dumps=json.dumps)
         else:
             return await transparent_request(session, url)
     except (aiohttp.errors.ClientOSError, aiohttp.errors.ClientResponseError) as exc:
@@ -190,6 +192,20 @@ async def transparent_request(session, url):
     return Response(status=response.status, body=await response.read(), content_type=content_type)
 
 
+async def status_handler(request):
+    fields = (
+        'chrome_host',
+        'chrome_port',
+        'debug',
+        'internal',
+        'max_clients',
+        'proxy_hosts',
+        'proxy_ports',
+    )
+    data = {k: v for k, v in request.app.items() if k in fields}
+    return json_response(data=data, dumps=json.dumps)
+
+
 async def init(loop, args):
     app = Application(loop=loop)
     app.update(args)
@@ -200,7 +216,8 @@ async def init(loop, args):
     app['sessions'] = []
     app['tasks'] = []
 
-    app.router.add_route('*', '/{path:.*}', the_handler)
+    app.router.add_route('*', '/{path:(?!status.json).*}', the_handler)
+    app.router.add_route('*', '/status.json', status_handler)
 
     handler = app.make_handler()
 
@@ -212,7 +229,7 @@ async def init(loop, args):
         srvs.append(srv)
 
     print(
-        "Server started at %s:%s\n"
+        "DevTools Proxy started at %s:%s\n"
         "Use --remote-debugging-port=%d --remote-debugging-address=%s for Chrome" % (
             app['proxy_hosts'], app['proxy_ports'], app['chrome_port'], app['chrome_host']
         )
@@ -267,10 +284,14 @@ def main():
         'max_clients': max_clients,
         'debug': args.debug,
         'proxy_hosts': args.host,
-        'proxy_ports': set(args.port),
+        'proxy_ports': list(set(args.port)),
         'chrome_host': args.chrome_host,
         'chrome_port': args.chrome_port,
         'devtools_pattern': re.compile(r"(127\.0\.0\.1|localhost|%s):%d/" % (args.chrome_host, args.chrome_port)),
+        'internal': {
+            'ujson': with_ujson,
+            'uvloop': with_uvloop,
+        },
     }
 
     loop = asyncio.get_event_loop()
