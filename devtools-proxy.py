@@ -10,6 +10,13 @@ import aiohttp
 from aiohttp.web import Application, Response, WebSocketResponse, WSMsgType
 
 try:
+    import uvloop
+
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+except ImportError:
+    pass
+
+try:
     import ujson as json
 except ImportError:
     import json
