@@ -11,6 +11,7 @@ env:
   global:
     - DISPLAY=:99.0
   matrix:
+    - SCRIPT=run-functional-tests.sh
     - SCRIPT=run-integration-tests.sh
 #    - SCRIPT=run-selenium-tests.sh DEVTOOLS_PROXY=false # For debugging mostly
     - SCRIPT=run-selenium-tests.sh DEVTOOLS_PROXY=true

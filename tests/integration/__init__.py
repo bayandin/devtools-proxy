@@ -1,11 +1,7 @@
-from pathlib import Path
-
 import selenium
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
-from .utils import free_port
-
-PROJECT_DIR = Path(__file__, '../../../').resolve()
+from tests.utils import free_port, PROJECT_DIR
 
 
 class TestCase(object):

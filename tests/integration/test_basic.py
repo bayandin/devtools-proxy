@@ -1,7 +1,7 @@
 import json
 
-from . import TestCase
-from .utils import devtools_proxy_ws
+from tests.integration import TestCase
+from tests.utils import devtools_proxy_ws
 
 
 class TestBasic(TestCase):
