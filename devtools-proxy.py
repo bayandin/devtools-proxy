@@ -266,13 +266,39 @@ def main():
     def bits(x):
         return math.ceil(math.log2(x))
 
-    parser = argparse.ArgumentParser(description='DevTools proxy — …')
-    parser.add_argument('--host', default=['127.0.0.1'], type=str, nargs='*', help='')
-    parser.add_argument('--port', default=[9222], type=int, nargs='*', help='')
-    parser.add_argument('--chrome-host', default='127.0.0.1', type=str, help='')
-    parser.add_argument('--chrome-port', default=12222, type=int, help='')
-    parser.add_argument('--max-clients', default=2, type=int, help='')
-    parser.add_argument('--debug', default=False, action='store_true', help='')
+    parser = argparse.ArgumentParser(description='DevTools Proxy')
+    parser.add_argument(
+        '--host',
+        type=str, nargs='+', default=['127.0.0.1'],
+        help='Hosts to serve on (default: %(default)r)',
+    )
+    parser.add_argument(
+        '--port',
+        type=int, nargs='+', default=[9222],
+        help='Ports to serve on (default: %(default)r)',
+    )
+    parser.add_argument(
+        '--chrome-host',
+        type=str, default='127.0.0.1',
+        help=('Host on which Chrome is running, '
+              'it corresponds with --remote-debugging-address Chrome argument (default: %(default)r)'),
+    )
+    parser.add_argument(
+        '--chrome-port',
+        type=int, default=12222,
+        help=('Port which Chrome remote debugger is listening, '
+              'it corresponds with --remote-debugging-port Chrome argument (default: %(default)r)'),
+    )
+    parser.add_argument(
+        '--max-clients',
+        type=int, default=2,
+        help='Number of clients which proxy can handle during life cycle (default: %(default)r)',
+    )
+    parser.add_argument(
+        '--debug',
+        action='store_true', default=False,
+        help='Turn on debug mode (default: %(default)r)',
+    )
     args = parser.parse_args()
 
     bits_for_client_id = bits(args.max_clients)
