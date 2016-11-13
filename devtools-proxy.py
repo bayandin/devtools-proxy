@@ -8,7 +8,7 @@ import re
 from functools import partial
 
 import aiohttp
-from aiohttp.web import Application, Response, WebSocketResponse, WSMsgType, json_response
+from aiohttp.web import Application, HTTPBadGateway, Response, WebSocketResponse, WSMsgType, json_response
 
 with_ujson = os.environ.get('DTP_UJSON', '').lower() == 'true'
 if with_ujson:
@@ -151,17 +151,19 @@ async def ws_browser_handler(request):
 
 async def proxy_handler(request):
     app = request.app
+    method = request.method
     path_qs = request.path_qs
     session = aiohttp.ClientSession(loop=request.app.loop)
     url = "http://%s:%s%s" % (app['chrome_host'], app['chrome_port'], path_qs)
 
-    print("[HTTP %s] %s" % (request.method, path_qs))
+    print("[HTTP %s] %s" % (method, path_qs))
     try:
-        if request.path in ['/json', '/json/list']:
-            response = await session.get(url)
+        response = await session.request(method, url)
+        if request.path in ('/json', '/json/list'):
             data = await response.json(loads=json.loads)
 
-            proxy_host, proxy_port = request.host.split(':')
+            proxy_host = request.url.host
+            proxy_port = request.url.port
             for tab in data:
                 for k, v in tab.items():
                     if ":%d/" % app['chrome_port'] in v:
@@ -176,20 +178,21 @@ async def proxy_handler(request):
                     tab['webSocketDebuggerUrl'] = "ws://%s" % devtools_url
                 if tab.get('devtoolsFrontendUrl') is None:
                     tab['devtoolsFrontendUrl'] = "/devtools/inspector.html?ws=%s" % devtools_url
-
-            return json_response(status=response.status, data=data, dumps=json.dumps)
+            body, text = None, json.dumps(data)
         else:
-            return await transparent_request(session, url)
+            body, text = await response.read(), None
+
+        return Response(
+            body=body,
+            text=text,
+            status=response.status,
+            reason=response.reason,
+            headers=response.headers,
+        )
     except (aiohttp.errors.ClientOSError, aiohttp.errors.ClientResponseError) as exc:
-        return aiohttp.web.HTTPBadGateway(text=str(exc))
+        return HTTPBadGateway(text=str(exc))
     finally:
         session.close()
-
-
-async def transparent_request(session, url):
-    response = await session.get(url)
-    content_type = response.headers[aiohttp.hdrs.CONTENT_TYPE].split(';')[0]  # Could be 'text/html; charset=UTF-8'
-    return Response(status=response.status, body=await response.read(), content_type=content_type)
 
 
 async def status_handler(request):

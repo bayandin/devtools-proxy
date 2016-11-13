@@ -12,7 +12,10 @@ function find_binary {
         FILES=(google-chrome chrome chromium chromium-browser)
         PATHS=(/opt/google/chrome /usr/local/bin /usr/local/sbin /usr/bin /usr/sbin /bin /sbin)
     elif [ ${KERNEL_NAME} == 'Darwin' ]; then
-        FILES=(Google\ Chrome.app/Contents/MacOS/Google\ Chrome Chromium.app/Contents/MacOS/Chromium)
+        FILES=(
+            Google\ Chrome.app/Contents/MacOS/Google\ Chrome
+            Chromium.app/Contents/MacOS/Chromium
+        )
         PATHS=(/Applications)
     else
         echo "Unknown or unsupported OS: '${KERNEL_NAME}'" >&2
