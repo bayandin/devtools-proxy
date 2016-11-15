@@ -1,7 +1,8 @@
 import selenium
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
-from tests.utils import free_port, PROJECT_DIR
+from devtools.proxy import DEVTOOLS_PROXY_PATH, CHROME_WRAPPER_PATH
+from tests.utils import free_port
 
 
 class TestCase(object):
@@ -10,12 +11,11 @@ class TestCase(object):
 
         capabilities = DesiredCapabilities.CHROME.copy()
         capabilities['chromeOptions'] = {
-            'binary': '{}/chrome-wrapper.sh'.format(PROJECT_DIR),
+            'binary': CHROME_WRAPPER_PATH,
             'args': [
-                '--devtools-proxy-binary={}/devtools-proxy.py'.format(PROJECT_DIR),
+                '--devtools-proxy-binary={}'.format(DEVTOOLS_PROXY_PATH),
                 '--devtools-proxy-port={}'.format(self.devtools_proxy_port),
                 '--devtools-proxy-chrome-debugging-port={}'.format(free_port()),
-                # '--devtools-proxy-log-file={}/devtools-proxy-{}.log'.format(PROJECT_DIR, self.devtools_proxy_port),
                 '--devtools-proxy-args=--max-clients 4'
             ],
         }

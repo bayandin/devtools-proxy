@@ -1,5 +1,6 @@
 import requests
 
+from devtools.proxy import __version__
 from tests.functional import TestCase
 from tests.utils import devtools_proxy, free_port
 
@@ -12,3 +13,4 @@ class TestBasic(TestCase):
             status = requests.get('http://127.0.0.1:{}/status.json'.format(port)).json()
 
         assert status['proxy_ports'] == [port]
+        assert status['version'] == __version__

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 readonly PROJECT_DIR="$(dirname "$(readlink -f "$0")")"
-readonly CHROME_WRAPPER="${PROJECT_DIR}/chrome-wrapper.sh"
-readonly PROXY_EXECUTABLE="${PROJECT_DIR}/devtools-proxy.py"
+readonly CHROME_WRAPPER="${PROJECT_DIR}/devtools/chrome-wrapper.sh"
+readonly PROXY_EXECUTABLE="${PROJECT_DIR}/devtools/proxy.py"
 readonly DEBUG_DIR="${PROJECT_DIR}/.debug"
 readonly DEVTOOLS_PROXY=${DEVTOOLS_PROXY:-true}
 DEBUG=${DEBUG:-false}

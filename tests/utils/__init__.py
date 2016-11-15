@@ -3,12 +3,11 @@ import signal
 import socket
 import subprocess
 import time
-from pathlib import Path
 
 import requests
 import websocket
 
-PROJECT_DIR = Path(__file__, '../../../').resolve()
+from devtools.proxy import DEVTOOLS_PROXY_PATH
 
 
 def free_port():
@@ -34,7 +33,7 @@ def devtools_proxy_ws(port, timeout=2):
 
 @contextlib.contextmanager
 def devtools_proxy(args, env=None):
-    _args = ['{}/devtools-proxy.py'.format(PROJECT_DIR)] + [str(arg) for arg in args]
+    _args = [DEVTOOLS_PROXY_PATH] + [str(arg) for arg in args]
     p = subprocess.Popen(args=_args, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     time.sleep(1)  # TODO: find a better way

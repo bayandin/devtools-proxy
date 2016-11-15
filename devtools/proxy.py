@@ -6,9 +6,12 @@ import math
 import os
 import re
 from functools import partial
+from pathlib import Path
 
 import aiohttp
 from aiohttp.web import Application, HTTPBadGateway, Response, WebSocketResponse, WSMsgType, json_response
+
+from devtools import __version__
 
 with_ujson = os.environ.get('DTP_UJSON', '').lower() == 'true'
 if with_ujson:
@@ -22,20 +25,23 @@ if with_uvloop:
 
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-BITS = 31
+_BITS = 31
+
+DEVTOOLS_PROXY_PATH = str(Path(__file__).resolve())
+CHROME_WRAPPER_PATH = str(Path(__file__, '../chrome-wrapper.sh').resolve())
 
 
 def encode_id_raw(client_id, request_id, max_request_id, bits_for_client_id):
     if request_id > max_request_id:
         raise OverflowError
 
-    res = (client_id << BITS - bits_for_client_id) | request_id
+    res = (client_id << _BITS - bits_for_client_id) | request_id
 
     return res
 
 
 def decode_id_raw(encoded_id, max_request_id, bits_for_client_id):
-    client_id = encoded_id >> (BITS - bits_for_client_id)
+    client_id = encoded_id >> (_BITS - bits_for_client_id)
     request_id = encoded_id & max_request_id
 
     return client_id, request_id
@@ -204,6 +210,7 @@ async def status_handler(request):
         'max_clients',
         'proxy_hosts',
         'proxy_ports',
+        'version',
     )
     data = {k: v for k, v in request.app.items() if k in fields}
     return json_response(data=data, dumps=json.dumps)
@@ -266,7 +273,10 @@ def main():
     def bits(x):
         return math.ceil(math.log2(x))
 
-    parser = argparse.ArgumentParser(description='DevTools Proxy')
+    parser = argparse.ArgumentParser(
+        prog='devtools-proxy',
+        description='DevTools Proxy'
+    )
     parser.add_argument(
         '--host',
         type=str, nargs='+', default=['127.0.0.1'],
@@ -295,6 +305,12 @@ def main():
         help='Number of clients which proxy can handle during life cycle (default: %(default)r)',
     )
     parser.add_argument(
+        '--version',
+        action='version',
+        version=__version__,
+        help='Print DevTools Proxy version',
+    )
+    parser.add_argument(
         '--debug',
         action='store_true', default=False,
         help='Turn on debug mode (default: %(default)r)',
@@ -303,7 +319,7 @@ def main():
 
     bits_for_client_id = bits(args.max_clients)
     max_clients = 2 ** bits_for_client_id
-    max_request_id = 2 ** (BITS - bits_for_client_id) - 1
+    max_request_id = 2 ** (_BITS - bits_for_client_id) - 1
 
     arguments = {
         'f': {
@@ -321,6 +337,7 @@ def main():
             'ujson': with_ujson,
             'uvloop': with_uvloop,
         },
+        'version': __version__,
     }
 
     loop = asyncio.get_event_loop()

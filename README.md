@@ -2,7 +2,7 @@
 
 ## Usage
 ```
-python3 devtools-proxy.py
+python3 -m devtools.proxy
 ```
 
 ## How it works
