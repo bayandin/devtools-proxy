@@ -5,6 +5,7 @@ import asyncio
 import math
 import os
 import re
+import sys
 from functools import partial
 from pathlib import Path
 
@@ -12,6 +13,8 @@ import aiohttp
 from aiohttp.web import Application, HTTPBadGateway, Response, WebSocketResponse, WSMsgType, json_response
 
 from devtools import __version__
+
+py_installer = getattr(sys, 'frozen', False)  # https://pythonhosted.org/PyInstaller/runtime-information.html
 
 with_ujson = os.environ.get('DTP_UJSON', '').lower() == 'true'
 if with_ujson:
@@ -25,10 +28,11 @@ if with_uvloop:
 
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-_BITS = 31
+if not py_installer:
+    DEVTOOLS_PROXY_PATH = str(Path(__file__).resolve())
+    CHROME_WRAPPER_PATH = str(Path(__file__, '../chrome-wrapper.sh').resolve())
 
-DEVTOOLS_PROXY_PATH = str(Path(__file__).resolve())
-CHROME_WRAPPER_PATH = str(Path(__file__, '../chrome-wrapper.sh').resolve())
+_BITS = 31
 
 
 def encode_id_raw(client_id, request_id, max_request_id, bits_for_client_id):
