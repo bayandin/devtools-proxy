@@ -19,13 +19,13 @@ pip3 install -U devtools-proxy
 ```python
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
-from devtools.proxy import CHROME_WRAPPER_PATH, DEVTOOLS_PROXY_PATH
+from devtools.proxy import CHROME_WRAPPER_PATH
 
 capabilities = DesiredCapabilities.CHROME.copy()
 capabilities['chromeOptions'] = {
     'binary': CHROME_WRAPPER_PATH,
     'args': [
-        '--devtools-proxy-binary={}'.format(DEVTOOLS_PROXY_PATH),
+        '--devtools-proxy-binary=python3 -m devtools.proxy',
     ],
 }
 ```
