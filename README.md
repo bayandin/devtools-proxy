@@ -1,8 +1,33 @@
 #  DevTools Proxy
 
 ## Usage
+
+#### Standalone (for any language)
+
+* Download & unzip [standalone binary](https://github.com/bayandin/devtools-proxy/releases)
+* Use `chrome-wrapper.sh` as a Chrome `binary` in [`ChromeOptions`](https://sites.google.com/a/chromium.org/chromedriver/capabilities#TOC-chromeOptions-object)
+* Add `--devtools-proxy-binary=/path/to/devtools-proxy` to `args`  in `ChromeOptions`.
+
+#### Python
+
+`devtools-proxy` supports only Python 3.5, otherwise use standalone version.
+
+```bash
+pip3 install -U devtools-proxy
 ```
-python3 -m devtools.proxy
+
+```python
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+
+from devtools.proxy import CHROME_WRAPPER_PATH, DEVTOOLS_PROXY_PATH
+
+capabilities = DesiredCapabilities.CHROME.copy()
+capabilities['chromeOptions'] = {
+    'binary': CHROME_WRAPPER_PATH,
+    'args': [
+        '--devtools-proxy-binary={}'.format(DEVTOOLS_PROXY_PATH),
+    ],
+}
 ```
 
 ## How it works
