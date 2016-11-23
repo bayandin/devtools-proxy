@@ -10,7 +10,7 @@
 
 #### Python
 
-`devtools-proxy` supports only Python 3.5, otherwise use standalone version.
+`devtools-proxy` pypi package supports only Python 3.5. If you use any other Python version use Standalone package.
 
 ```bash
 pip3 install -U devtools-proxy
@@ -25,7 +25,7 @@ capabilities = DesiredCapabilities.CHROME.copy()
 capabilities['chromeOptions'] = {
     'binary': CHROME_WRAPPER_PATH,
     'args': [
-        '--devtools-proxy-binary=python3 -m devtools.proxy',
+        '--devtools-proxy-binary=devtools-proxy',
     ],
 }
 ```

@@ -19,7 +19,7 @@ with open(os.path.join(here, 'devtools', '__init__.py'), encoding='utf-8') as f:
     try:
         version = re.findall(r"^__version__ = '([^']+)'\r?$", f.read(), re.M)[0]
     except IndexError:
-        raise RuntimeError('Unable to determine version.')
+        raise RuntimeError('Unable to determine version')
 
 setup(
     name='devtools-proxy',
@@ -57,6 +57,12 @@ setup(
     package_data={
         'devtools': [
             'chrome-wrapper.sh',
+        ],
+    },
+
+    entry_points={
+        'console_scripts': [
+            'devtools-proxy=devtools.proxy:main',
         ],
     },
 )

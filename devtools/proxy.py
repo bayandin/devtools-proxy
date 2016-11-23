@@ -28,7 +28,6 @@ if with_uvloop:
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 if not py_installer:
-    DEVTOOLS_PROXY_PATH = str(Path(__file__).resolve())
     CHROME_WRAPPER_PATH = str(Path(__file__, '../chrome-wrapper.sh').resolve())
 
 
