@@ -1,0 +1,39 @@
+--- conftest.py
++++ conftest.py
+@@ -15,6 +15,7 @@
+ # specific language governing permissions and limitations
+ # under the License.
+
++import os
+ import socket
+ import subprocess
+ import time
+@@ -25,6 +26,8 @@ import pytest
+ from selenium import webdriver
+ from selenium.webdriver import DesiredCapabilities
+
++from selenium.webdriver.common.utils import free_port
++
+ drivers = (
+     'BlackBerry',
+     'Chrome',
+@@ -67,6 +70,19 @@ def driver(request):
+         reason = skip.kwargs.get('reason') or skip.name
+         pytest.skip(reason)
+
++    if driver_class == 'Chrome':
++        with_devtools_proxy = os.environ.get('DEVTOOLS_PROXY') == 'true'
++        port = free_port()
++        capabilities = DesiredCapabilities.CHROME.copy()
++        if with_devtools_proxy:
++            capabilities['chromeOptions'] = {
++                'binary': os.environ.get('CHROME_WRAPPER_PATH'),
++                'args': [
++                    '--devtools-proxy-binary={}'.format(os.environ.get('DEVTOOLS_PROXY_PATH')),
++                    '--devtools-proxy-chrome-debugging-port={}'.format(port),
++                ]
++            }
++        kwargs['desired_capabilities'] = capabilities
+     if driver_class == 'BlackBerry':
+         kwargs.update({'device_password': 'password'})
+     if driver_class == 'Firefox':

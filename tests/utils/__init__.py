@@ -1,13 +1,13 @@
-import contextlib
 import signal
 import socket
 import subprocess
 import time
+from contextlib import contextmanager
 
 import requests
 import websocket
 
-from devtools.proxy import DEVTOOLS_PROXY_PATH
+from tests import DEVTOOLS_PROXY_PATH
 
 
 def free_port():
@@ -19,7 +19,7 @@ def free_port():
     return port
 
 
-@contextlib.contextmanager
+@contextmanager
 def devtools_proxy_ws(port, timeout=2):
     tabs = requests.get('http://127.0.0.1:{}/json/list'.format(port)).json()
     tab = next(tab for tab in tabs if tab.get('type') == 'page')
@@ -31,7 +31,7 @@ def devtools_proxy_ws(port, timeout=2):
     ws.close()
 
 
-@contextlib.contextmanager
+@contextmanager
 def devtools_proxy(args, env=None):
     _args = [DEVTOOLS_PROXY_PATH] + [str(arg) for arg in args]
     p = subprocess.Popen(args=_args, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

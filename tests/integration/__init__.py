@@ -1,7 +1,7 @@
 import selenium
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
-from devtools.proxy import DEVTOOLS_PROXY_PATH, CHROME_WRAPPER_PATH
+from tests import CHROME_WRAPPER_PATH, DEVTOOLS_PROXY_PATH
 from tests.utils import free_port
 
 
@@ -16,7 +16,7 @@ class TestCase(object):
                 '--devtools-proxy-binary={}'.format(DEVTOOLS_PROXY_PATH),
                 '--devtools-proxy-port={}'.format(self.devtools_proxy_port),
                 '--devtools-proxy-chrome-debugging-port={}'.format(free_port()),
-                '--devtools-proxy-args=--max-clients 4'
+                '--devtools-proxy-args=--max-clients 4',
             ],
         }
 
