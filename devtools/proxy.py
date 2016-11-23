@@ -6,7 +6,6 @@ import math
 import os
 import re
 import sys
-from functools import partial
 from pathlib import Path
 
 import aiohttp
@@ -31,24 +30,6 @@ if with_uvloop:
 if not py_installer:
     DEVTOOLS_PROXY_PATH = str(Path(__file__).resolve())
     CHROME_WRAPPER_PATH = str(Path(__file__, '../chrome-wrapper.sh').resolve())
-
-_BITS = 31
-
-
-def encode_id_raw(client_id, request_id, max_request_id, bits_for_client_id):
-    if request_id > max_request_id:
-        raise OverflowError
-
-    res = (client_id << _BITS - bits_for_client_id) | request_id
-
-    return res
-
-
-def decode_id_raw(encoded_id, max_request_id, bits_for_client_id):
-    client_id = encoded_id >> (_BITS - bits_for_client_id)
-    request_id = encoded_id & max_request_id
-
-    return client_id, request_id
 
 
 async def the_handler(request):
@@ -273,10 +254,27 @@ async def finish(app, srvs, handler):
         await srv.wait_closed()
 
 
-def main():
-    def bits(x):
-        return math.ceil(math.log2(x))
+def encode_decode_id(max_clients):
+    bits_available = 31
 
+    bits_for_client_id = math.ceil(math.log2(max_clients))
+    _max_clients = 2 ** bits_for_client_id
+    max_request_id = 2 ** (bits_available - bits_for_client_id) - 1
+
+    def encode_id(client_id, request_id):
+        if request_id > max_request_id:
+            raise OverflowError
+        return (client_id << bits_available - bits_for_client_id) | request_id
+
+    def decode_id(encoded_id):
+        client_id = encoded_id >> (bits_available - bits_for_client_id)
+        request_id = encoded_id & max_request_id
+        return client_id, request_id
+
+    return encode_id, decode_id, _max_clients
+
+
+def main():
     parser = argparse.ArgumentParser(
         prog='devtools-proxy',
         description='DevTools Proxy'
@@ -321,14 +319,12 @@ def main():
     )
     args = parser.parse_args()
 
-    bits_for_client_id = bits(args.max_clients)
-    max_clients = 2 ** bits_for_client_id
-    max_request_id = 2 ** (_BITS - bits_for_client_id) - 1
+    encode_id, decode_id, max_clients = encode_decode_id(args.max_clients)
 
     arguments = {
         'f': {
-            'encode_id': partial(encode_id_raw, max_request_id=max_request_id, bits_for_client_id=bits_for_client_id),
-            'decode_id': partial(decode_id_raw, max_request_id=max_request_id, bits_for_client_id=bits_for_client_id),
+            'encode_id': encode_id,
+            'decode_id': decode_id,
         },
         'max_clients': max_clients,
         'debug': args.debug,
