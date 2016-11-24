@@ -22,14 +22,14 @@
          pytest.skip(reason)
 
 +    if driver_class == 'Chrome':
-+        with_devtools_proxy = os.environ.get('DEVTOOLS_PROXY') == 'true'
 +        port = free_port()
 +        capabilities = DesiredCapabilities.CHROME.copy()
-+        if with_devtools_proxy:
++
++        if os.environ.get('WITH_DEVTOOLS_PROXY') == 'true':
 +            capabilities['chromeOptions'] = {
-+                'binary': os.environ.get('CHROME_WRAPPER_PATH'),
++                'binary': os.environ['CHROME_WRAPPER_PATH'],
 +                'args': [
-+                    '--devtools-proxy-binary={}'.format(os.environ.get('DEVTOOLS_PROXY_PATH')),
++                    '--devtools-proxy-binary={}'.format(os.environ['DEVTOOLS_PROXY_PATH']),
 +                    '--devtools-proxy-chrome-debugging-port={}'.format(port),
 +                ]
 +            }
