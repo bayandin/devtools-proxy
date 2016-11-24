@@ -11,9 +11,9 @@ from pathlib import Path
 import aiohttp
 from aiohttp.web import Application, HTTPBadGateway, Response, WebSocketResponse, WSMsgType, json_response
 
-from devtools import __version__
+import devtools
 
-py_installer = getattr(sys, 'frozen', False)  # https://pythonhosted.org/PyInstaller/runtime-information.html
+VERSION = devtools.__version__
 
 with_ujson = os.environ.get('DTP_UJSON', '').lower() == 'true'
 if with_ujson:
@@ -27,7 +27,8 @@ if with_uvloop:
 
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-if not py_installer:
+# https://pythonhosted.org/PyInstaller/runtime-information.html
+if not getattr(sys, 'frozen', False):
     CHROME_WRAPPER_PATH = str(Path(__file__, '../chrome-wrapper.sh').resolve())
 
 
@@ -308,7 +309,7 @@ def main():
     parser.add_argument(
         '--version',
         action='version',
-        version=__version__,
+        version=VERSION,
         help='Print DevTools Proxy version',
     )
     parser.add_argument(
@@ -336,7 +337,7 @@ def main():
             'ujson': with_ujson,
             'uvloop': with_uvloop,
         },
-        'version': __version__,
+        'version': VERSION,
     }
 
     loop = asyncio.get_event_loop()
