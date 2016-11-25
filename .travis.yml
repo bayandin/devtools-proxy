@@ -9,12 +9,16 @@ cache: pip
 
 env:
   global:
+    - CHROMEDRIVER_VERSION=2.25
     - DISPLAY=:99.0
   matrix:
     - SCRIPT=run-functional-tests.sh
+    - SCRIPT=run-functional-tests.sh CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
     - SCRIPT=run-integration-tests.sh
+    - SCRIPT=run-integration-tests.sh CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
 #    - SCRIPT=run-selenium-tests.sh WITH_DEVTOOLS_PROXY=false # For debugging purposses
     - SCRIPT=run-selenium-tests.sh
+    - SCRIPT=run-selenium-tests.sh CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
     - SCRIPT=run-selenium-tests.sh DTP_UJSON=true
     - SCRIPT=run-selenium-tests.sh DTP_UVLOOP=true
     - SCRIPT=run-selenium-tests.sh DTP_UJSON=true DTP_UVLOOP=true
@@ -33,7 +37,6 @@ before_install:
       curl -L -O "http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/${CHROME_REVISION}/chrome-linux.zip"
       unzip chrome-linux.zip
       sudo ln -sf $PWD/chrome-linux/chrome-wrapper /usr/local/bin/chrome
-      export CHROMEDRIVER_VERSION=`curl -s http://chromedriver.storage.googleapis.com/LATEST_RELEASE`
       curl -L -O "http://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
       unzip -o chromedriver_linux64.zip -d /tmp/ && chmod +x /tmp/chromedriver && sudo mv /tmp/chromedriver /usr/local/bin/chromedriver
 
@@ -41,6 +44,7 @@ install:
   - pip install -Ur requirements-dev.txt
 
 before_script:
+  - ./build-standalone.sh
   - sh -e /etc/init.d/xvfb start
 
 script:

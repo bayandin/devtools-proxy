@@ -3,7 +3,7 @@
 # How to build standalone for Linux on macOS:
 # docker run --volume $(pwd):/build --workdir /build python:3.5.2 /build/build-standalone.sh
 
-readonly PROJECT_DIR=$(realpath $(dirname "$0"))
+readonly PROJECT_DIR="$(dirname "$(readlink -f "$0")")"
 readonly PLATFORM=$(python3 -c "import sys; print(sys.platform)")
 readonly VERSION=$(python3 -c "from devtools import __version__; print(__version__)")
 
