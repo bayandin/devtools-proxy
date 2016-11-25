@@ -1,0 +1,4 @@
+devtools-proxy==0.0.4
+requests==2.12.1
+selenium==3.0.1
+websocket-client==0.37.0
