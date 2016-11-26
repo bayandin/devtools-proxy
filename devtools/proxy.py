@@ -54,10 +54,10 @@ async def ws_client_handler(request):
     app = request.app
     path_qs = request.path_qs
     tab_id = path_qs.split('/')[-1]
-    url = "ws://%s:%d%s" % (app['chrome_host'], app['chrome_port'], path_qs)
+    url = 'ws://{}:{}{}'.format(app['chrome_host'], app['chrome_port'], path_qs)
     encode_id = app['f']['encode_id']
     client_id = len(app['clients'])
-    log_prefix = "[CLIENT %d]" % client_id
+    log_prefix = '[CLIENT {}]'.format(client_id)
 
     ws_client = WebSocketResponse()
     await ws_client.prepare(request)
@@ -79,7 +79,7 @@ async def ws_client_handler(request):
         try:
             app['tabs'][tab_id]['ws'] = await session.ws_connect(url)
         except aiohttp.WSServerHandshakeError:
-            print(log_prefix, 'CONNECTION ERROR: %s' % tab_id)
+            print(log_prefix, 'CONNECTION ERROR: {}'.format(tab_id))
             return ws_client
 
     async for msg in ws_client:
@@ -109,11 +109,11 @@ async def ws_browser_handler(request):
 
     for i in range(math.ceil(timeout / interval)):
         if app['tabs'][tab_id].get('ws') is not None and not app['tabs'][tab_id]['ws'].closed:
-            print("[BROWSER %s]" % tab_id, 'CONNECTED')
+            print('[BROWSER {}]'.format(tab_id), 'CONNECTED')
             break
         await asyncio.sleep(interval)
     else:
-        print("[BROWSER %s]" % tab_id, 'DISCONNECTED')
+        print('[BROWSER {}]'.format(tab_id), 'DISCONNECTED')
         return
 
     async for msg in app['tabs'][tab_id]['ws']:
@@ -124,16 +124,16 @@ async def ws_browser_handler(request):
                 for client in clients.keys():
                     if not client.closed:
                         client_id = app['clients'][client]['id']
-                        print('[CLIENT %d]' % client_id, log_prefix, msg.data)
+                        print('[CLIENT {}]'.format(client_id), log_prefix, msg.data)
                         client.send_str(msg.data)
             else:
                 client_id, request_id = decode_id(data['id'])
-                print('[CLIENT %d]' % client_id, log_prefix, data)
+                print('[CLIENT {}]'.format(client_id), log_prefix, data)
                 data['id'] = request_id
                 ws = next(ws for ws, client in app['clients'].items() if client['id'] == client_id)
                 ws.send_json(data, dumps=json.dumps)
     else:
-        print("[BROWSER %s]" % tab_id, 'DISCONNECTED')
+        print('[BROWSER {}]'.format(tab_id), 'DISCONNECTED')
         return
 
 
@@ -156,9 +156,9 @@ async def proxy_handler(request):
     method = request.method
     path_qs = request.path_qs
     session = aiohttp.ClientSession(loop=request.app.loop)
-    url = "http://%s:%s%s" % (app['chrome_host'], app['chrome_port'], path_qs)
+    url = 'http://{}:{}{}'.format(app['chrome_host'], app['chrome_port'], path_qs)
 
-    print("[HTTP %s] %s" % (method, path_qs))
+    print('[HTTP {}] {}'.format(method, path_qs))
     try:
         response = await session.request(method, url)
         if request.path in ('/json', '/json/list', '/json/new'):
@@ -227,8 +227,8 @@ async def init(loop, args):
         srvs.append(srv)
 
     print(
-        "DevTools Proxy started at %s:%s\n"
-        "Use --remote-debugging-port=%d --remote-debugging-address=%s for Chrome" % (
+        'DevTools Proxy started at {}:{}\n'
+        'Use --remote-debugging-port={} --remote-debugging-address={} for Chrome'.format(
             app['proxy_hosts'], app['proxy_ports'], app['chrome_port'], app['chrome_host']
         )
     )
