@@ -17,7 +17,7 @@ if __name__ == '__main__':
         'binary': CHROME_WRAPPER_PATH,
         'args': [
             '--devtools-proxy-binary=devtools-proxy',
-            '--devtools-proxy-port={}'.format(devtools_proxy_port),
+            '--devtools-proxy-args=--port {}'.format(devtools_proxy_port),
         ]
     }
 

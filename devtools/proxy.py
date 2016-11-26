@@ -274,20 +274,30 @@ def encode_decode_id(max_clients):
     return encode_id, decode_id, _max_clients
 
 
+def default_of_flatten_uniq(arg, default):
+    # Simple helper for parsing arguments with action='append' and default value
+    if arg is None:
+        return default
+    else:
+        return list(set(e for ee in arg for e in ee))
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog='devtools-proxy',
         description='DevTools Proxy'
     )
+    default_host = ['127.0.0.1']
     parser.add_argument(
         '--host',
-        type=str, nargs='+', default=['127.0.0.1'],
-        help='Hosts to serve on (default: %(default)r)',
+        type=str, nargs='+', action='append',
+        help='Hosts to serve on (default: {})'.format(default_host),
     )
+    default_port = [9222]
     parser.add_argument(
         '--port',
-        type=int, nargs='+', default=[9222],
-        help='Ports to serve on (default: %(default)r)',
+        type=int, nargs='+', action='append',
+        help='Ports to serve on (default: {})'.format(default_port),
     )
     parser.add_argument(
         '--chrome-host',
@@ -321,6 +331,9 @@ def main():
 
     encode_id, decode_id, max_clients = encode_decode_id(args.max_clients)
 
+    args.port = default_of_flatten_uniq(args.port, default_port)
+    args.host = default_of_flatten_uniq(args.host, default_host)
+
     arguments = {
         'f': {
             'encode_id': encode_id,
@@ -329,7 +342,7 @@ def main():
         'max_clients': max_clients,
         'debug': args.debug,
         'proxy_hosts': args.host,
-        'proxy_ports': list(set(args.port)),
+        'proxy_ports': args.port,
         'chrome_host': args.chrome_host,
         'chrome_port': args.chrome_port,
         'devtools_pattern': re.compile(r"(127\.0\.0\.1|localhost|%s):%d/" % (args.chrome_host, args.chrome_port)),

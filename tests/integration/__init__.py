@@ -14,9 +14,8 @@ class TestCase(object):
             'binary': CHROME_WRAPPER_PATH,
             'args': [
                 '--devtools-proxy-binary={}'.format(DEVTOOLS_PROXY_PATH),
-                '--devtools-proxy-port={}'.format(self.devtools_proxy_port),
                 '--devtools-proxy-chrome-debugging-port={}'.format(free_port()),
-                '--devtools-proxy-args=--max-clients 4',
+                '--devtools-proxy-args=--port {} --max-clients 4'.format(self.devtools_proxy_port),
             ],
         }
 

@@ -60,9 +60,6 @@ DEV_TOOLS_PROXY_ARGS_RE="--devtools-proxy-args=(.+)"
 DEV_TOOLS_PROXY_LOG_FILE=/dev/null
 DEV_TOOLS_PROXY_LOG_FILE_RE="--devtools-proxy-log-file=(.+)"
 
-KNOWN_PORT=""
-KNOWN_PORT_RE="--devtools-proxy-port=([[:digit:]]+)"
-
 declare -a CLI_PARAMS=("$@")
 
 for i in ${!CLI_PARAMS[@]}; do
@@ -85,17 +82,13 @@ for i in ${!CLI_PARAMS[@]}; do
     elif [[ ${VALUE} =~ ${DEV_TOOLS_PROXY_LOG_FILE_RE} ]]; then
         DEV_TOOLS_PROXY_LOG_FILE=${BASH_REMATCH[1]}
         unset CLI_PARAMS[${i}]
-    elif [[ ${VALUE} =~ ${KNOWN_PORT_RE} ]]; then
-        KNOWN_PORT=${BASH_REMATCH[1]}
-        unset CLI_PARAMS[${i}]
     fi
 done
 
 if [ -n "$DEV_TOOLS_PROXY_BINARY" ]; then
     CLI_PARAMS[$PROXY_DEBUGGING_PORT_IDX]="--remote-debugging-port=${CHROME_DEBUGGING_PORT}"
 
-    PORTS="${KNOWN_PORT} ${PROXY_DEBUGGING_PORT}"
-    ${DEV_TOOLS_PROXY_BINARY} --port ${PORTS} --chrome-port ${CHROME_DEBUGGING_PORT} ${DEV_TOOLS_PROXY_ARGS} > ${DEV_TOOLS_PROXY_LOG_FILE} 2>&1 &
+    ${DEV_TOOLS_PROXY_BINARY} --port ${PROXY_DEBUGGING_PORT} --chrome-port ${CHROME_DEBUGGING_PORT} ${DEV_TOOLS_PROXY_ARGS} > ${DEV_TOOLS_PROXY_LOG_FILE} 2>&1 &
     PROXY_PID=$!
     CHROME_PID=$$
     ( > /dev/null 2>&1 < /dev/null watch_dog ${CHROME_PID} ${PROXY_PID} & ) &
