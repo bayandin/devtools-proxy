@@ -11,9 +11,7 @@ from pathlib import Path
 import aiohttp
 from aiohttp.web import Application, HTTPBadGateway, Response, WebSocketResponse, WSMsgType, json_response
 
-import devtools
-
-VERSION = devtools.__version__
+from devtools import VERSION
 
 with_ujson = os.environ.get('DTP_UJSON', '').lower() == 'true'
 if with_ujson:

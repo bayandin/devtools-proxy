@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# How to build standalone for Linux on macOS:
+# Building standalone binary for Linux on macOS:
 # docker run --volume $(pwd):/build --workdir /build python:3.5.2 /build/build-standalone.sh
 
 readonly PROJECT_DIR="$(dirname "$(readlink -f "$0")")"
