@@ -4,7 +4,6 @@ import argparse
 import asyncio
 import math
 import os
-import re
 import sys
 from pathlib import Path
 
@@ -138,6 +137,20 @@ async def ws_browser_handler(request):
         return
 
 
+def update_tab(tab, host, port):
+    result = dict(tab)  # It is safe enough — all values are strings
+
+    if result.get('id') is None:
+        print('[ERROR]', 'Got a tab without id (which is improbable): {}'.format(result))
+        return result  # Maybe it should raise an error?
+
+    devtools_url = '{}:{}/devtools/page/{}'.format(host, port, result['id'])
+    result['webSocketDebuggerUrl'] = 'ws://{}'.format(devtools_url)
+    result['devtoolsFrontendUrl'] = '/devtools/inspector.html?ws={}'.format(devtools_url)
+
+    return result
+
+
 async def proxy_handler(request):
     app = request.app
     method = request.method
@@ -148,25 +161,17 @@ async def proxy_handler(request):
     print("[HTTP %s] %s" % (method, path_qs))
     try:
         response = await session.request(method, url)
-        if request.path in ('/json', '/json/list'):
+        if request.path in ('/json', '/json/list', '/json/new'):
             data = await response.json(loads=json.loads)
 
             proxy_host = request.url.host
             proxy_port = request.url.port
-            for tab in data:
-                for k, v in tab.items():
-                    if ":%d/" % app['chrome_port'] in v:
-                        tab[k] = app['devtools_pattern'].sub("%s:%s/" % (proxy_host, proxy_port), tab[k])
-
-                if tab.get('id') is None:
-                    print('[WARN]', "Got a tab without id (which is improbable): %s" % tab)
-                    continue
-
-                devtools_url = "%s:%s/devtools/page/%s" % (proxy_host, proxy_port, tab['id'])
-                if tab.get('webSocketDebuggerUrl') is None:
-                    tab['webSocketDebuggerUrl'] = "ws://%s" % devtools_url
-                if tab.get('devtoolsFrontendUrl') is None:
-                    tab['devtoolsFrontendUrl'] = "/devtools/inspector.html?ws=%s" % devtools_url
+            if isinstance(data, list):
+                data = [update_tab(tab, proxy_host, proxy_port) for tab in data]
+            elif isinstance(data, dict):
+                data = update_tab(data, proxy_host, proxy_port)
+            else:
+                print('[WARN]', 'JSON data neither list nor dict: {}'.format(data))
             body, text = None, json.dumps(data)
         else:
             body, text = await response.read(), None
@@ -343,7 +348,6 @@ def main():
         'proxy_ports': args.port,
         'chrome_host': args.chrome_host,
         'chrome_port': args.chrome_port,
-        'devtools_pattern': re.compile(r"(127\.0\.0\.1|localhost|%s):%d/" % (args.chrome_host, args.chrome_port)),
         'internal': {
             'ujson': with_ujson,
             'uvloop': with_uvloop,
