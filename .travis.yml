@@ -29,7 +29,7 @@ matrix:
     - python: "3.6-dev"
     - env: SCRIPT=run-selenium-tests.sh DTP_UJSON=true
     - env: SCRIPT=run-selenium-tests.sh DTP_UVLOOP=true
-  exclude: # PyInstaller doesn't support Python 3.6
+  exclude: # PyInstaller doesn't work with Python 3.6: https://github.com/pyinstaller/pyinstaller/issues/2286
     - python: "3.6-dev"
       env: SCRIPT=run-functional-tests.sh CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
     - python: "3.6-dev"
