@@ -284,7 +284,7 @@ def encode_decode_id(max_clients):
     return encode_id, decode_id, _max_clients
 
 
-def default_of_flatten_uniq(arg, default):
+def default_or_flatten_and_uniq(arg, default):
     # Simple helper for parsing arguments with action='append' and default value
     if arg is None:
         return default
@@ -346,8 +346,8 @@ def main():
 
     encode_id, decode_id, max_clients = encode_decode_id(args.max_clients)
 
-    args.port = default_of_flatten_uniq(args.port, default_port)
-    args.host = default_of_flatten_uniq(args.host, default_host)
+    args.port = default_or_flatten_and_uniq(args.port, default_port)
+    args.host = default_or_flatten_and_uniq(args.host, default_host)
 
     arguments = {
         'f': {
