@@ -323,7 +323,7 @@ def main():
     )
     parser.add_argument(
         '--max-clients',
-        type=int, default=2,
+        type=int, default=8,
         help='Number of clients which proxy can handle during life cycle (default: %(default)r)',
     )
     parser.add_argument(
