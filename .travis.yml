@@ -8,54 +8,62 @@ sudo: required
 
 cache: pip
 
+git:
+  submodules: false
+
 env:
   global:
     - CHROMEDRIVER_VERSION=2.25
     - DISPLAY=:99.0
   matrix:
-    - SCRIPT=run-functional-tests.sh
-    - SCRIPT=run-functional-tests.sh CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
-    - SCRIPT=run-integration-tests.sh
-    - SCRIPT=run-integration-tests.sh CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
-#    - SCRIPT=run-selenium-tests.sh WITH_DEVTOOLS_PROXY=false # For debugging purposses
-    - SCRIPT=run-selenium-tests.sh
-    - SCRIPT=run-selenium-tests.sh CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
-    - SCRIPT=run-selenium-tests.sh DTP_UJSON=true
-    - SCRIPT=run-selenium-tests.sh DTP_UVLOOP=true
+    - TESTS=functional
+    - TESTS=functional CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
+    - TESTS=integration
+    - TESTS=integration CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
+#    - TESTS=compatibility WITH_DEVTOOLS_PROXY=false # For debugging purposses
+    - TESTS=compatibility
+    - TESTS=compatibility CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
+    - TESTS=compatibility DTP_UJSON=true
+    - TESTS=compatibility DTP_UVLOOP=true
 
 matrix:
   fast_finish: true
   allow_failures:
     - python: "3.6-dev"
-    - env: SCRIPT=run-selenium-tests.sh DTP_UJSON=true
-    - env: SCRIPT=run-selenium-tests.sh DTP_UVLOOP=true
+    - env: TESTS=compatibility # Selenium Chrome tests are unstable. Should be fixed in Selenium 3.0.2 / 3.1.0 release
+    - env: TESTS=compatibility CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy # The same reason as above
+    - env: TESTS=compatibility DTP_UJSON=true
+    - env: TESTS=compatibility DTP_UVLOOP=true
   exclude: # PyInstaller doesn't work with Python 3.6: https://github.com/pyinstaller/pyinstaller/issues/2286
     - python: "3.6-dev"
-      env: SCRIPT=run-functional-tests.sh CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
+      env: TESTS=functional CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
     - python: "3.6-dev"
-      env: SCRIPT=run-integration-tests.sh CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
+      env: TESTS=integration CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
     - python: "3.6-dev"
-      env: SCRIPT=run-selenium-tests.sh CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
+      env: TESTS=compatibility CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
 
 before_install:
   - |
-      sudo apt-get -y purge chromium-browser
-      export CHROME_REVISION=`curl -s http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/LAST_CHANGE`
-      curl -L -O "http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/${CHROME_REVISION}/chrome-linux.zip"
-      unzip chrome-linux.zip
-      sudo ln -sf $PWD/chrome-linux/chrome-wrapper /usr/local/bin/chrome
-      curl -L -O "http://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
-      unzip -o chromedriver_linux64.zip -d /tmp/ && chmod +x /tmp/chromedriver && sudo mv /tmp/chromedriver /usr/local/bin/chromedriver
+      if [[ ${TESTS} != "functional" ]]; then
+        sudo apt-get -y purge chromium-browser
+        export CHROME_REVISION=`curl -s http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/LAST_CHANGE`
+        curl -L -O "http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/${CHROME_REVISION}/chrome-linux.zip"
+        unzip chrome-linux.zip
+        sudo ln -sf $PWD/chrome-linux/chrome-wrapper /usr/local/bin/chrome
+        curl -L -O "http://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+        unzip -o chromedriver_linux64.zip -d /tmp/ && chmod +x /tmp/chromedriver && sudo mv /tmp/chromedriver /usr/local/bin/chromedriver
+      fi
 
 install:
   - pip install -Ur requirements-dev.txt
 
 before_script:
   - if [[ ${DEVTOOLS_PROXY_PATH} == "dist/linux/devtools-proxy" ]]; then ./build-standalone.sh; fi
+  - if [[ ${TESTS} == "compatibility" ]]; then git submodule update --init --recursive; fi
   - sh -e /etc/init.d/xvfb start
 
 script:
-  - bash ${SCRIPT}
+  - ./run-tests.sh ${TESTS}
 
 notifications:
   email: false
