@@ -5,6 +5,7 @@ import asyncio
 import math
 import os
 import sys
+import traceback
 from pathlib import Path
 
 import aiohttp
@@ -58,12 +59,13 @@ async def ws_client_handler(request):
     encode_id = app['f']['encode_id']
     client_id = len(app['clients'])
     log_prefix = '[CLIENT {}]'.format(client_id)
+    log_msg = app['f']['print']
 
     ws_client = WebSocketResponse()
     await ws_client.prepare(request)
 
     if client_id >= app['max_clients']:
-        print(log_prefix, 'CONNECTION FAILED')
+        log_msg(log_prefix, 'CONNECTION FAILED')
         return ws_client
 
     app['clients'][ws_client] = {
@@ -71,7 +73,7 @@ async def ws_client_handler(request):
         'tab_id': tab_id
     }
 
-    print(log_prefix, 'CONNECTED')
+    log_msg(log_prefix, 'CONNECTED')
 
     if app['tabs'][tab_id].get('ws') is None or app['tabs'][tab_id]['ws'].closed:
         session = aiohttp.ClientSession(loop=app.loop)
@@ -79,22 +81,22 @@ async def ws_client_handler(request):
         try:
             app['tabs'][tab_id]['ws'] = await session.ws_connect(url)
         except aiohttp.WSServerHandshakeError:
-            print(log_prefix, 'CONNECTION ERROR: {}'.format(tab_id))
+            log_msg(log_prefix, 'CONNECTION ERROR: {}'.format(tab_id))
             return ws_client
 
     async for msg in ws_client:
         if msg.type == WSMsgType.TEXT:
             if app['tabs'][tab_id]['ws'].closed:
-                print(log_prefix, 'RECONNECTED')
+                log_msg(log_prefix, 'RECONNECTED')
                 break
             data = msg.json(loads=json.loads)
 
             data['id'] = encode_id(client_id, data['id'])
-            print(log_prefix, '>>', data)
+            log_msg(log_prefix, '>>', data)
 
             app['tabs'][tab_id]['ws'].send_json(data, dumps=json.dumps)
     else:
-        print(log_prefix, 'DISCONNECTED')
+        log_msg(log_prefix, 'DISCONNECTED')
         return ws_client
 
 
@@ -103,17 +105,18 @@ async def ws_browser_handler(request):
     app = request.app
     tab_id = request.path_qs.split('/')[-1]
     decode_id = app['f']['decode_id']
+    log_msg = app['f']['print']
 
     timeout = 10
     interval = 0.1
 
     for i in range(math.ceil(timeout / interval)):
         if app['tabs'][tab_id].get('ws') is not None and not app['tabs'][tab_id]['ws'].closed:
-            print('[BROWSER {}]'.format(tab_id), 'CONNECTED')
+            log_msg('[BROWSER {}]'.format(tab_id), 'CONNECTED')
             break
         await asyncio.sleep(interval)
     else:
-        print('[BROWSER {}]'.format(tab_id), 'DISCONNECTED')
+        log_msg('[BROWSER {}]'.format(tab_id), 'DISCONNECTED')
         return
 
     async for msg in app['tabs'][tab_id]['ws']:
@@ -124,24 +127,24 @@ async def ws_browser_handler(request):
                 for client in clients.keys():
                     if not client.closed:
                         client_id = app['clients'][client]['id']
-                        print('[CLIENT {}]'.format(client_id), log_prefix, msg.data)
+                        log_msg('[CLIENT {}]'.format(client_id), log_prefix, msg.data)
                         client.send_str(msg.data)
             else:
                 client_id, request_id = decode_id(data['id'])
-                print('[CLIENT {}]'.format(client_id), log_prefix, data)
+                log_msg('[CLIENT {}]'.format(client_id), log_prefix, data)
                 data['id'] = request_id
                 ws = next(ws for ws, client in app['clients'].items() if client['id'] == client_id)
                 ws.send_json(data, dumps=json.dumps)
     else:
-        print('[BROWSER {}]'.format(tab_id), 'DISCONNECTED')
+        log_msg('[BROWSER {}]'.format(tab_id), 'DISCONNECTED')
         return
 
 
-def update_tab(tab, host, port):
+def update_tab(tab, host, port, log_msg):
     result = dict(tab)  # It is safe enough — all values are strings
 
     if result.get('id') is None:
-        print('[ERROR]', 'Got a tab without id (which is improbable): {}'.format(result))
+        log_msg('[ERROR]', 'Got a tab without id (which is improbable): {}'.format(result))
         return result  # Maybe it should raise an error?
 
     devtools_url = '{}:{}/devtools/page/{}'.format(host, port, result['id'])
@@ -157,8 +160,9 @@ async def proxy_handler(request):
     path_qs = request.path_qs
     session = aiohttp.ClientSession(loop=request.app.loop)
     url = 'http://{}:{}{}'.format(app['chrome_host'], app['chrome_port'], path_qs)
+    log_msg = app['f']['print']
 
-    print('[HTTP {}] {}'.format(method, path_qs))
+    log_msg('[HTTP {}] {}'.format(method, path_qs))
     try:
         response = await session.request(method, url)
         if request.path in ('/json', '/json/list', '/json/new'):
@@ -167,11 +171,11 @@ async def proxy_handler(request):
             proxy_host = request.url.host
             proxy_port = request.url.port
             if isinstance(data, list):
-                data = [update_tab(tab, proxy_host, proxy_port) for tab in data]
+                data = [update_tab(tab, proxy_host, proxy_port, log_msg) for tab in data]
             elif isinstance(data, dict):
-                data = update_tab(data, proxy_host, proxy_port)
+                data = update_tab(data, proxy_host, proxy_port, log_msg)
             else:
-                print('[WARN]', 'JSON data neither list nor dict: {}'.format(data))
+                log_msg('[WARN]', 'JSON data neither list nor dict: {}'.format(data))
             body, text = None, json.dumps(data)
         else:
             body, text = await response.read(), None
@@ -207,6 +211,7 @@ async def status_handler(request):
 async def init(loop, args):
     app = Application(loop=loop)
     app.update(args)
+    log_msg = app['f']['print']
 
     app['clients'] = {}
     app['tabs'] = {}
@@ -226,7 +231,7 @@ async def init(loop, args):
         srv = await loop.create_server(handler, app['proxy_hosts'], proxy_port)
         srvs.append(srv)
 
-    print(
+    log_msg(
         'DevTools Proxy started at {}:{}\n'
         'Use --remote-debugging-port={} --remote-debugging-address={} for Chrome'.format(
             app['proxy_hosts'], app['proxy_ports'], app['chrome_port'], app['chrome_host']
@@ -255,6 +260,8 @@ async def finish(app, srvs, handler):
 
     for srv in srvs:
         await srv.wait_closed()
+
+    app['f']['close_log']()
 
 
 def encode_decode_id(max_clients):
@@ -320,6 +327,11 @@ def main():
         help='Number of clients which proxy can handle during life cycle (default: %(default)r)',
     )
     parser.add_argument(
+        '--log',
+        default=sys.stdout, type=argparse.FileType('w'),
+        help='Write logs to file',
+    )
+    parser.add_argument(
         '--version',
         action='version',
         version=VERSION,
@@ -341,6 +353,8 @@ def main():
         'f': {
             'encode_id': encode_id,
             'decode_id': decode_id,
+            'print': lambda *a: args.log.write(' '.join(str(v) for v in a) + '\n'),
+            'close_log': lambda: args.log.close(),
         },
         'max_clients': max_clients,
         'debug': args.debug,
@@ -354,6 +368,8 @@ def main():
         },
         'version': VERSION,
     }
+
+    sys.excepthook = lambda e, v, t: arguments['f']['print'](*traceback.format_exception(e, v, t))
 
     loop = asyncio.get_event_loop()
     if args.debug:
