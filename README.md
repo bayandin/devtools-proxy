@@ -1,19 +1,24 @@
 #  DevTools Proxy
 
+[![Build Status](https://travis-ci.org/bayandin/devtools-proxy.svg?branch=master)](https://travis-ci.org/bayandin/devtools-proxy)
+[![PyPI](https://img.shields.io/pypi/v/devtools-proxy.svg)](https://pypi.python.org/pypi/devtools-proxy)
+[![GitHub release](https://img.shields.io/github/release/bayandin/devtools-proxy.svg)](https://github.com/bayandin/devtools-proxy/releases/latest)
+
 ## Usage
 
 #### Standalone (for any language)
 
-* Download & unzip [standalone binary](https://github.com/bayandin/devtools-proxy/releases)
-* Use `chrome-wrapper.sh` as a Chrome `binary` in [`ChromeOptions`](https://sites.google.com/a/chromium.org/chromedriver/capabilities#TOC-chromeOptions-object)
-* Add `--devtools-proxy-binary=/path/to/devtools-proxy` to `args`  in `ChromeOptions`.
+* Download & unzip [standalone binary](https://github.com/bayandin/devtools-proxy/releases/latest)
+* Configure [`ChromeOptions`](https://sites.google.com/a/chromium.org/chromedriver/capabilities#TOC-chromeOptions-object):
+    * Set path to `chrome-wrapper.sh` as a `binary`
+    * Add `--devtools-proxy-binary=/path/to/devtools-proxy` to `args`
 
 #### Python
 
 `devtools-proxy` pypi package supports only Python 3.5. If you use any other Python version use Standalone package.
 
 ```bash
-pip3 install -U devtools-proxy
+pip install -U devtools-proxy
 ```
 
 ```python
