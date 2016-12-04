@@ -70,7 +70,8 @@ async def ws_client_handler(request):
 
     app['clients'][ws_client] = {
         'id': client_id,
-        'tab_id': tab_id
+        'tab_id': tab_id,
+        'subscriptions': set(),  # TODO: Move subscriptions to separate entity
     }
 
     log_msg(log_prefix, 'CONNECTED')
@@ -93,6 +94,14 @@ async def ws_client_handler(request):
 
             data['id'] = encode_id(client_id, data['id'])
             log_msg(log_prefix, '>>', data)
+
+            if data.get('method', '').endswith('.enable'):
+                domain = data['method'].split('.')[0]
+                app['clients'][ws_client]['subscriptions'].add(domain)
+            elif data.get('method', '').endswith('.disable'):
+                domain = data['method'].split('.')[0]
+                if domain in app['clients'][ws_client]['subscriptions']:
+                    app['clients'][ws_client]['subscriptions'].remove(domain)
 
             app['tabs'][tab_id]['ws'].send_json(data, dumps=json.dumps)
     else:
@@ -123,7 +132,10 @@ async def ws_browser_handler(request):
         if msg.type == WSMsgType.TEXT:
             data = msg.json(loads=json.loads)
             if data.get('id') is None:
-                clients = {k: v for k, v in app['clients'].items() if v.get('tab_id') == tab_id}
+                clients = {
+                    k: v for k, v in app['clients'].items()
+                    if v.get('tab_id') == tab_id and data.get('method', '').split('.')[0] in v['subscriptions']
+                    }
                 for client in clients.keys():
                     if not client.closed:
                         client_id = app['clients'][client]['id']
