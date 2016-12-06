@@ -13,7 +13,7 @@ git:
 
 env:
   global:
-    - CHROMEDRIVER_VERSION=2.25
+    - CHROMEDRIVER_VERSION=2.26
     - DISPLAY=:99.0
   matrix:
     - TESTS=functional
