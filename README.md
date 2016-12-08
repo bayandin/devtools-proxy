@@ -31,6 +31,10 @@ capabilities['chromeOptions'] = {
     'binary': CHROME_WRAPPER_PATH,
     'args': [
         '--devtools-proxy-binary=devtools-proxy',
+        # Optional arguments:
+        # '--chrome-binary=/path/to/chrome/binary', # Path to Chrome/Chromium binary
+        # '--devtools-proxy-chrome-debugging-port=some-free-port', # Port which proxy will listen. Default is 12222
+        # '--devtools-proxy-args=--additional --devtools-proxy --arguments, # Additional arguments for devtools-proxy from `devtools-proxy --help`
     ],
 }
 ```
