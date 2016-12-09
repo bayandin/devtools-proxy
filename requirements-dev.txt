@@ -4,4 +4,4 @@ pytest-instafail==0.3.0
 pytest-xdist==1.15.0
 requests==2.12.3
 selenium==3.0.2
-websocket-client==0.39.0
+websocket-client==0.40.0
