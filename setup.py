@@ -38,6 +38,7 @@ setup(
 
     classifiers=[
         'Development Status :: 3 - Alpha',
+        # 'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Operating System :: MacOS :: MacOS X',

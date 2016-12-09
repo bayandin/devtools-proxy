@@ -10,7 +10,7 @@
 
 * Download & unzip [standalone binary](https://github.com/bayandin/devtools-proxy/releases/latest)
 * Configure [`ChromeOptions`](https://sites.google.com/a/chromium.org/chromedriver/capabilities#TOC-chromeOptions-object):
-    * Set path to `chrome-wrapper.sh` as a `binary`
+    * Set path to `chrome-wrapper.sh` as a `binary`. Optional arguments are mentioned in example for Python below
     * Add `--devtools-proxy-binary=/path/to/devtools-proxy` to `args`
 
 #### Python
