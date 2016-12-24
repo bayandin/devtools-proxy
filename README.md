@@ -15,7 +15,7 @@
 
 #### Python
 
-`devtools-proxy` pypi package supports only Python 3.5. If you use any other Python version use Standalone package.
+`devtools-proxy` pypi package supports at least Python 3.5. If you use lower Python version use Standalone package.
 
 ```bash
 pip install -U devtools-proxy

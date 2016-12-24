@@ -2,7 +2,7 @@ language: python
 
 python:
   - "3.5"
-  - "3.6-dev"
+  - "3.6"
 
 sudo: required
 
@@ -29,17 +29,16 @@ env:
 matrix:
   fast_finish: true
   allow_failures:
-    - python: "3.6-dev"
     - env: TESTS=compatibility # Selenium Chrome tests are unstable. Should be fixed in Selenium 3.0.2 / 3.1.0 release
     - env: TESTS=compatibility CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy # The same reason as above
     - env: TESTS=compatibility DTP_UJSON=true
     - env: TESTS=compatibility DTP_UVLOOP=true
   exclude: # PyInstaller doesn't work with Python 3.6: https://github.com/pyinstaller/pyinstaller/issues/2286
-    - python: "3.6-dev"
+    - python: "3.6"
       env: TESTS=functional CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
-    - python: "3.6-dev"
+    - python: "3.6"
       env: TESTS=integration CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
-    - python: "3.6-dev"
+    - python: "3.6"
       env: TESTS=compatibility CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
 
 before_install:
