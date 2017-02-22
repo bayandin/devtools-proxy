@@ -239,12 +239,7 @@ async def init(loop, args):
 
     handler = app.make_handler()
 
-    # Simplify after Python 3.6 release (with async comprehensions)
-    # Simplify it even more when http://bugs.python.org/issue27665 will be ready :)
-    srvs = []
-    for proxy_port in app['proxy_ports']:
-        srv = await loop.create_server(handler, app['proxy_hosts'], proxy_port)
-        srvs.append(srv)
+    srvs = [await loop.create_server(handler, app['proxy_hosts'], proxy_port) for proxy_port in app['proxy_ports']]
 
     log_msg(
         f'DevTools Proxy started at {app["proxy_hosts"]}:{app["proxy_ports"]}\n'
