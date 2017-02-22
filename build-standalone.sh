@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Building standalone binary for Linux on macOS:
-# docker run --volume $(pwd):/build --workdir /build python:3.5.2 /build/build-standalone.sh
+# docker run --volume $(pwd):/build --workdir /build python:3.6.0 /build/build-standalone.sh
 
 readonly PROJECT_DIR="$(dirname "$(readlink -f "$0")")"
 readonly PLATFORM=$(python3 -c "import sys; print(sys.platform)")
