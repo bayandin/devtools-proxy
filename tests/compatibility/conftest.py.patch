@@ -8,18 +8,17 @@
  import socket
  import subprocess
  import time
-@@ -25,6 +26,8 @@ import pytest
+@@ -25,6 +26,7 @@ from _pytest.skipping import MarkEvaluator
+
  from selenium import webdriver
  from selenium.webdriver import DesiredCapabilities
-
 +from selenium.webdriver.common.utils import free_port
-+
- drivers = (
-     'BlackBerry',
-     'Chrome',
-@@ -67,6 +70,19 @@ def driver(request):
-         reason = skip.kwargs.get('reason') or skip.name
-         pytest.skip(reason)
+ from test.selenium.webdriver.common.webserver import SimpleWebServer
+ from test.selenium.webdriver.common.network import get_lan_ip
+
+@@ -76,6 +78,19 @@ def driver(request):
+                 yield
+                 return
 
 +    if driver_class == 'Chrome':
 +        port = free_port()
