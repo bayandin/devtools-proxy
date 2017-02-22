@@ -56,10 +56,10 @@ async def ws_client_handler(request):
     app = request.app
     path_qs = request.path_qs
     tab_id = path_qs.split('/')[-1]
-    url = 'ws://{}:{}{}'.format(app['chrome_host'], app['chrome_port'], path_qs)
+    url = f'ws://{app["chrome_host"]}:{app["chrome_port"]}{path_qs}'
     encode_id = app['f']['encode_id']
     client_id = len(app['clients'])
-    log_prefix = '[CLIENT {}]'.format(client_id)
+    log_prefix = f'[CLIENT {client_id}]'
     log_msg = app['f']['print']
 
     ws_client = WebSocketResponse()
@@ -83,7 +83,7 @@ async def ws_client_handler(request):
         try:
             app['tabs'][tab_id]['ws'] = await session.ws_connect(url)
         except aiohttp.WSServerHandshakeError:
-            log_msg(log_prefix, 'CONNECTION ERROR: {}'.format(tab_id))
+            log_msg(log_prefix, f'CONNECTION ERROR: {tab_id}')
             return ws_client
 
     async for msg in ws_client:
@@ -122,11 +122,11 @@ async def ws_browser_handler(request):
 
     for i in range(math.ceil(timeout / interval)):
         if app['tabs'][tab_id].get('ws') is not None and not app['tabs'][tab_id]['ws'].closed:
-            log_msg('[BROWSER {}]'.format(tab_id), 'CONNECTED')
+            log_msg(f'[BROWSER {tab_id}]', 'CONNECTED')
             break
         await asyncio.sleep(interval)
     else:
-        log_msg('[BROWSER {}]'.format(tab_id), 'DISCONNECTED')
+        log_msg(f'[BROWSER {tab_id}]', 'DISCONNECTED')
         return
 
     async for msg in app['tabs'][tab_id]['ws']:
@@ -140,16 +140,16 @@ async def ws_browser_handler(request):
                 for client in clients.keys():
                     if not client.closed:
                         client_id = app['clients'][client]['id']
-                        log_msg('[CLIENT {}]'.format(client_id), log_prefix, msg.data)
+                        log_msg(f'[CLIENT {client_id}]', log_prefix, msg.data)
                         client.send_str(msg.data)
             else:
                 client_id, request_id = decode_id(data['id'])
-                log_msg('[CLIENT {}]'.format(client_id), log_prefix, data)
+                log_msg(f'[CLIENT {client_id}]', log_prefix, data)
                 data['id'] = request_id
                 ws = next(ws for ws, client in app['clients'].items() if client['id'] == client_id)
                 ws.send_json(data, dumps=json.dumps)
     else:
-        log_msg('[BROWSER {}]'.format(tab_id), 'DISCONNECTED')
+        log_msg(f'[BROWSER {tab_id}]', 'DISCONNECTED')
         return
 
 
@@ -157,12 +157,12 @@ def update_tab(tab, host, port, log_msg):
     result = dict(tab)  # It is safe enough — all values are strings
 
     if result.get('id') is None:
-        log_msg('[ERROR]', 'Got a tab without id (which is improbable): {}'.format(result))
+        log_msg('[ERROR]', f'Got a tab without id (which is improbable): {result}')
         return result  # Maybe it should raise an error?
 
-    devtools_url = '{}:{}/devtools/page/{}'.format(host, port, result['id'])
-    result['webSocketDebuggerUrl'] = 'ws://{}'.format(devtools_url)
-    result['devtoolsFrontendUrl'] = '/devtools/inspector.html?ws={}'.format(devtools_url)
+    devtools_url = f'{host}:{port}/devtools/page/{result["id"]}'
+    result['webSocketDebuggerUrl'] = f'ws://{devtools_url}'
+    result['devtoolsFrontendUrl'] = f'/devtools/inspector.html?ws={devtools_url}'
 
     return result
 
@@ -172,10 +172,10 @@ async def proxy_handler(request):
     method = request.method
     path_qs = request.path_qs
     session = aiohttp.ClientSession(loop=request.app.loop)
-    url = 'http://{}:{}{}'.format(app['chrome_host'], app['chrome_port'], path_qs)
+    url = f'http://{app["chrome_host"]}:{app["chrome_port"]}{path_qs}'
     log_msg = app['f']['print']
 
-    log_msg('[HTTP {}] {}'.format(method, path_qs))
+    log_msg(f'[HTTP {method}] {path_qs}')
     try:
         response = await session.request(method, url)
         headers = response.headers.copy()
@@ -189,7 +189,7 @@ async def proxy_handler(request):
             elif isinstance(data, dict):
                 data = update_tab(data, proxy_host, proxy_port, log_msg)
             else:
-                log_msg('[WARN]', 'JSON data neither list nor dict: {}'.format(data))
+                log_msg('[WARN]', f'JSON data neither list nor dict: {data}')
             body, text = None, json.dumps(data)
             headers[hdrs.CONTENT_LENGTH] = str(len(text))
         else:
@@ -247,10 +247,8 @@ async def init(loop, args):
         srvs.append(srv)
 
     log_msg(
-        'DevTools Proxy started at {}:{}\n'
-        'Use --remote-debugging-port={} --remote-debugging-address={} for Chrome'.format(
-            app['proxy_hosts'], app['proxy_ports'], app['chrome_port'], app['chrome_host']
-        )
+        f'DevTools Proxy started at {app["proxy_hosts"]}:{app["proxy_ports"]}\n'
+        f'Use --remote-debugging-port={app["chrome_port"]} --remote-debugging-address={app["chrome_host"]} for Chrome',
     )
     return app, srvs, handler
 
@@ -316,13 +314,13 @@ def main():
     parser.add_argument(
         '--host',
         type=str, nargs='+', action='append',
-        help='Hosts to serve on (default: {})'.format(default_host),
+        help=f'Hosts to serve on (default: {default_host})',
     )
     default_port = [9222]
     parser.add_argument(
         '--port',
         type=int, nargs='+', action='append',
-        help='Ports to serve on (default: {})'.format(default_port),
+        help=f'Ports to serve on (default: {default_port})',
     )
     parser.add_argument(
         '--chrome-host',

@@ -23,17 +23,17 @@ if __name__ == '__main__':
         'binary': CHROME_WRAPPER_PATH,
         'args': [
             '--devtools-proxy-binary=devtools-proxy',
-            '--devtools-proxy-args=--port {}'.format(devtools_proxy_port),
+            f'--devtools-proxy-args=--port {devtools_proxy_port}',
         ]
     }
 
     driver = selenium.webdriver.Chrome(desired_capabilities=desired_capabilities)
     try:
-        version = requests.get('http://localhost:{}/json/version'.format(devtools_proxy_port)).json()
+        version = requests.get(f'http://localhost:{devtools_proxy_port}/json/version').json()
         webkit_version = version['WebKit-Version']  # 537.36 (@8ee402c67ff2f8f7c746e56d3530b4dcec0709ad)
         webkit_hash = re.search(r'\((.+)\)', webkit_version).group(1)  # @8ee402c67ff2f8f7c746e56d3530b4dcec0709ad
 
-        tabs = requests.get('http://localhost:{}/json/list'.format(devtools_proxy_port)).json()
+        tabs = requests.get(f'http://localhost:{devtools_proxy_port}/json/list').json()
         tab = next(tab for tab in tabs if tab.get('type') == 'page')
         devtools_frontend_url = tab['devtoolsFrontendUrl']
         devtools_frontend_url = re.sub(r'^/devtools/', '', devtools_frontend_url)

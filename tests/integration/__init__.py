@@ -13,9 +13,9 @@ class TestCase(object):
         capabilities['chromeOptions'] = {
             'binary': CHROME_WRAPPER_PATH,
             'args': [
-                '--devtools-proxy-binary={}'.format(DEVTOOLS_PROXY_PATH),
-                '--devtools-proxy-chrome-debugging-port={}'.format(free_port()),
-                '--devtools-proxy-args=--port {}'.format(self.devtools_proxy_port),
+                f'--devtools-proxy-binary={DEVTOOLS_PROXY_PATH}',
+                f'--devtools-proxy-chrome-debugging-port={free_port()}',
+                f'--devtools-proxy-args=--port {self.devtools_proxy_port}',
             ],
         }
 

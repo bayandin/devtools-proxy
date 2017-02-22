@@ -21,7 +21,7 @@ def free_port():
 
 @contextmanager
 def devtools_proxy_ws(port, timeout=2):
-    tabs = requests.get('http://127.0.0.1:{}/json/list'.format(port)).json()
+    tabs = requests.get(f'http://127.0.0.1:{port}/json/list').json()
     tab = next(tab for tab in tabs if tab.get('type') == 'page')
     devtools_url = tab['webSocketDebuggerUrl']
 

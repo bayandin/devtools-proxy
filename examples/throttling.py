@@ -16,13 +16,13 @@ if __name__ == '__main__':
         'binary': CHROME_WRAPPER_PATH,
         'args': [
             '--devtools-proxy-binary=devtools-proxy',
-            '--devtools-proxy-args=--port {}'.format(devtools_proxy_port),
+            f'--devtools-proxy-args=--port {devtools_proxy_port}',
         ]
     }
 
     driver = selenium.webdriver.Chrome(desired_capabilities=desired_capabilities)
     try:
-        tabs = requests.get('http://localhost:{}/json/list'.format(devtools_proxy_port)).json()
+        tabs = requests.get(f'http://localhost:{devtools_proxy_port}/json/list').json()
         tab = next(tab for tab in tabs if tab.get('type') == 'page')
         devtools_url = tab['webSocketDebuggerUrl']
         driver.get('https://codepen.io/bayandin/full/xRpROy/')

@@ -9,6 +9,6 @@ class TestBasic(TestCase):
         port = free_port()
 
         with devtools_proxy(args=['--port', port]):
-            status = requests.get('http://127.0.0.1:{}/status.json'.format(port)).json()
+            status = requests.get(f'http://127.0.0.1:{port}/status.json').json()
 
         assert status['proxy_ports'] == [port]
