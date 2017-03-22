@@ -199,7 +199,7 @@ async def proxy_handler(request):
             reason=response.reason,
             headers=response.headers,
         )
-    except (aiohttp.errors.ClientOSError, aiohttp.errors.ClientResponseError) as exc:
+    except aiohttp.ClientError as exc:
         return HTTPBadGateway(text=str(exc))
     finally:
         session.close()
