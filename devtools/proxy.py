@@ -9,7 +9,7 @@ import traceback
 from pathlib import Path
 
 import aiohttp
-from aiohttp.web import Application, HTTPBadGateway, Response, WebSocketResponse, WSMsgType, json_response
+from aiohttp.web import Application, HTTPBadGateway, Response, WebSocketResponse, WSMsgType, hdrs, json_response
 
 from devtools import VERSION
 
@@ -177,6 +177,7 @@ async def proxy_handler(request):
     log_msg('[HTTP {}] {}'.format(method, path_qs))
     try:
         response = await session.request(method, url)
+        headers = response.headers.copy()
         if request.path in ('/json', '/json/list', '/json/new'):
             data = await response.json(loads=json.loads)
 
@@ -189,6 +190,7 @@ async def proxy_handler(request):
             else:
                 log_msg('[WARN]', 'JSON data neither list nor dict: {}'.format(data))
             body, text = None, json.dumps(data)
+            headers[hdrs.CONTENT_LENGTH] = str(len(text))
         else:
             body, text = await response.read(), None
 
@@ -197,7 +199,7 @@ async def proxy_handler(request):
             text=text,
             status=response.status,
             reason=response.reason,
-            headers=response.headers,
+            headers=headers,
         )
     except aiohttp.ClientError as exc:
         return HTTPBadGateway(text=str(exc))
