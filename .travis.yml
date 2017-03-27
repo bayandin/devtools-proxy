@@ -13,6 +13,7 @@ git:
 
 env:
   global:
+    - CHROME_REVISION=454471 # 58.0.3029.33 from https://omahaproxy.appspot.com/
     - CHROMEDRIVER_VERSION=2.28
     - DISPLAY=:99.0
   matrix:
@@ -43,7 +44,6 @@ before_install:
   - |
       if [[ ${TESTS} != "functional" ]]; then
         sudo apt-get -y purge chromium-browser
-        export CHROME_REVISION=`curl -s http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/LAST_CHANGE`
         curl -L -O "http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/${CHROME_REVISION}/chrome-linux.zip"
         unzip chrome-linux.zip
         sudo ln -sf $PWD/chrome-linux/chrome-wrapper /usr/local/bin/chrome
