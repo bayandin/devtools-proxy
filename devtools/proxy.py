@@ -224,7 +224,7 @@ async def status_handler(request):
 
 
 async def init(loop, args):
-    app = Application(loop=loop, debug=args['debug'])
+    app = Application(debug=args['debug'])
     app.update(args)
     log_msg = app['f']['print']
 
