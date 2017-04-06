@@ -6,6 +6,7 @@ import math
 import os
 import sys
 import traceback
+import warnings
 from pathlib import Path
 
 import aiohttp
@@ -135,7 +136,7 @@ async def ws_browser_handler(request):
                 clients = {
                     k: v for k, v in app['clients'].items()
                     if v.get('tab_id') == tab_id and data.get('method', '').split('.')[0] in v['subscriptions']
-                    }
+                }
                 for client in clients.keys():
                     if not client.closed:
                         client_id = app['clients'][client]['id']
@@ -223,7 +224,7 @@ async def status_handler(request):
 
 
 async def init(loop, args):
-    app = Application(loop=loop)
+    app = Application(loop=loop, debug=args['debug'])
     app.update(args)
     log_msg = app['f']['print']
 
@@ -383,10 +384,18 @@ def main():
         'version': VERSION,
     }
 
-    sys.excepthook = lambda e, v, t: arguments['f']['print'](*traceback.format_exception(e, v, t))
+    def _excepthook(exctype, value, traceback):
+        return arguments['f']['print'](*traceback.format_exception(exctype, value, traceback))
+
+    sys.excepthook = _excepthook
 
     loop = asyncio.get_event_loop()
     if args.debug:
+        def _showwarning(message, category, filename, lineno, file=None, line=None):
+            return arguments['f']['print'](warnings.formatwarning(message, category, filename, lineno, line))
+
+        warnings.showwarning = _showwarning
+        warnings.simplefilter("always")
         loop.set_debug(True)
 
     application, srvs, handler = loop.run_until_complete(init(loop, arguments))
