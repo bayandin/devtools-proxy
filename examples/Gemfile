@@ -1,0 +1,4 @@
+source 'https://rubygems.org'
+
+gem 'selenium-webdriver', '3.3.0'
+gem 'websocket-client-simple', '0.3.0'
