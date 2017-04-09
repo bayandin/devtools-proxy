@@ -5,7 +5,7 @@ import asyncio
 import math
 import os
 import sys
-import traceback
+import traceback as tb
 import warnings
 from pathlib import Path
 
@@ -378,7 +378,7 @@ def main():
     }
 
     def _excepthook(exctype, value, traceback):
-        return arguments['f']['print'](*traceback.format_exception(exctype, value, traceback))
+        return arguments['f']['print'](*tb.format_exception(exctype, value, traceback))
 
     sys.excepthook = _excepthook
 
