@@ -4,11 +4,21 @@
 [![PyPI](https://img.shields.io/pypi/v/devtools-proxy.svg)](https://pypi.python.org/pypi/devtools-proxy)
 [![GitHub release](https://img.shields.io/github/release/bayandin/devtools-proxy.svg)](https://github.com/bayandin/devtools-proxy/releases/latest)
 
+DevTools Proxy is a tool for creating simultaneous connections via Chrome Debugging Protocol ([which is not possible by default](https://developer.chrome.com/devtools/docs/debugger-protocol#simultaneous)).
+
+## Installation
+
+* Download & unzip [standalone binary](https://github.com/bayandin/devtools-proxy/releases/latest) for your system.
+* If you use Python (at least 3.6) you can install it via pip: `pip install devtools-proxy`
+
 ## Usage
+
+### With Selenium and ChromeDriver
+
+There are [examples](examples/) for Python and Ruby. Demos for [CPU Throttling](https://youtu.be/NU46EkrRoYo), [Network requests](https://youtu.be/JDtuXAptypY) and [Remote debugging](https://youtu.be/X-dL_eKB1VE).
 
 #### Standalone (for any language)
 
-* Download & unzip [standalone binary](https://github.com/bayandin/devtools-proxy/releases/latest)
 * Configure [`ChromeOptions`](https://sites.google.com/a/chromium.org/chromedriver/capabilities#TOC-chromeOptions-object):
     * Set path to `chrome-wrapper.sh` as a `binary`. Optional arguments are mentioned in example for Python below
     * Add `--devtools-proxy-binary=/path/to/devtools-proxy` to `args`
@@ -26,36 +36,47 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 from devtools.proxy import CHROME_WRAPPER_PATH
 
+devtools_proxy_binary = 'devtools-proxy' # Or path to `devtools-proxy` from downloaded binaries
+
 capabilities = DesiredCapabilities.CHROME.copy()
 capabilities['chromeOptions'] = {
-    'binary': CHROME_WRAPPER_PATH,
+    'binary': CHROME_WRAPPER_PATH, # Or path to `chrome-wrapper.sh` from downloaded binaries
     'args': [
-        '--devtools-proxy-binary=devtools-proxy',
+        f'--devtools-proxy-binary={devtools_proxy_binary}',
         # Optional arguments:
-        # '--chrome-binary=/path/to/chrome/binary', # Path to Chrome/Chromium binary
+        # '--chrome-binary=/path/to/chrome/binary', # Path to real Chrome/Chromium binary
         # '--devtools-proxy-chrome-debugging-port=some-free-port', # Port which proxy will listen. Default is 12222
         # '--devtools-proxy-args=--additional --devtools-proxy --arguments, # Additional arguments for devtools-proxy from `devtools-proxy --help`
     ],
 }
 ```
 
+### With multiple Devtools instances
+
+* Run `devtools-proxy` (by default it started on 9222 port)
+* Run Chrome with parameters `--remote-debugging-port=12222 --remote-debugging-address=127.0.0.1`
+* Open a website which you want to inspect
+* Open debugger in a new Chrome tab:  `http://localhost:9222` and choose your website to inspect
+* Repeat the previous step as many times as you need it
+
 ## How it works
 
 ```
-                 +---+
-+----------+     | D |   +--------------+
-| CLIENT 1 |<--->| E |   |  +-------+   |
-+----------+     | V |<---->| TAB 1 |   |
-+----------+     | T |   |  +-------+   |
-| CLIENT 2 |<--->| O |   |  +-------+ C |
-+----------+     | O |<---->| TAB 2 | H |
-+----------+     | L |   |  +-------+ R |
-| CLIENT 3 |<--->| S |   |            O |
-+----------+     |   |   |            M |
-                 | P |   |            E |
-                 | R |   |  +-------+   |
-+----------+     | O |<---->| TAB M |   |
-| CLIENT N |<--->| X |   |  +-------+   |
-+----------+     | Y |   +--------------+
-                 +---+
++---+      +---+
+| C |      | D |
+| L |      | E |
+| I |<---->| V |    +-----------+
+| E |      | T |    |         B |
+| N |      | O |    |  +---+  R |
+| T |      | O |    |  | T |  O |
++---+      | L |<----->| A |  W |
+           | S |    |  | B |  S |
++---+      |   |    |  +---+  E |
+| C |      | P |    |         R |
+| L |      | R |    +-----------+
+| I |<---->| O |
+| E |      | X |
+| N |      | Y |
+| T |      +---+
++---+
 ```
