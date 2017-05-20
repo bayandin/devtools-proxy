@@ -1,18 +1,25 @@
+dist: trusty
+sudo: required
+
 language: python
 
 python:
   - "3.6"
-
-sudo: required
 
 cache: pip
 
 git:
   submodules: false
 
+addons:
+  apt:
+    sources:
+      - google-chrome
+    packages:
+      - google-chrome-stable
+
 env:
   global:
-    - CHROME_VERSION=58.0.3029.81
     - CHROMEDRIVER_VERSION=2.28
     - DISPLAY=:99.0
   matrix:
@@ -20,7 +27,6 @@ env:
     - TESTS=functional CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
     - TESTS=integration
     - TESTS=integration CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
-#    - TESTS=compatibility WITH_DEVTOOLS_PROXY=false # For debugging purposses
     - TESTS=compatibility
     - TESTS=compatibility CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
     - TESTS=compatibility DTP_UJSON=true
@@ -35,11 +41,6 @@ matrix:
 before_install:
   - |
       if [[ ${TESTS} != "functional" ]]; then
-        CHROME_REVISION=$(curl -s https://omahaproxy.appspot.com/deps.json?version=${CHROME_VERSION} | python3 -c 'import json; print(json.loads(input())["chromium_base_position"])')
-        sudo apt-get -y purge chromium-browser
-        curl -L -O "http://commondatastorage.googleapis.com/chromium-browser-snapshots/Linux_x64/${CHROME_REVISION}/chrome-linux.zip"
-        unzip chrome-linux.zip
-        sudo ln -sf $PWD/chrome-linux/chrome-wrapper /usr/local/bin/chrome
         curl -L -O "http://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
         unzip -o chromedriver_linux64.zip -d /tmp/ && chmod +x /tmp/chromedriver && sudo mv /tmp/chromedriver /usr/local/bin/chromedriver
       fi
