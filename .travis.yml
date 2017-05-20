@@ -2,7 +2,6 @@ dist: trusty
 sudo: required
 
 language: python
-
 python:
   - "3.6"
 
@@ -20,7 +19,7 @@ addons:
 
 env:
   global:
-    - CHROMEDRIVER_VERSION=2.28
+    - CHROMEDRIVER_VERSION=2.29
     - DISPLAY=:99.0
   matrix:
     - TESTS=functional
