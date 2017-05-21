@@ -35,7 +35,7 @@ if [[ ${TESTS} == "compatibility/selenium/py" ]]; then
     echo "$DEVTOOLS_PROXY_PATCH" | patch -N -p0 -d "${PROJECT_DIR}/tests/compatibility/selenium/py"
     cp "${PROJECT_DIR}/tests/compatibility/getAttribute.js" "${PROJECT_DIR}/tests/compatibility/selenium/py/selenium/webdriver/remote/getAttribute.js"
     cp "${PROJECT_DIR}/tests/compatibility/isDisplayed.js" "${PROJECT_DIR}/tests/compatibility/selenium/py/selenium/webdriver/remote/isDisplayed.js"
-    PYTEST_OPTIONS+=(--driver=Chrome)
+    PYTEST_OPTIONS+=(--driver=Chrome --timeout-method=thread --timeout=120)
 fi
 
 py.test  ${PYTEST_OPTIONS[@]} "${PROJECT_DIR}/tests/${TESTS}/"
