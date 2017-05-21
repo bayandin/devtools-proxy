@@ -1,14 +1,6 @@
 --- conftest.py
 +++ conftest.py
-@@ -15,6 +15,7 @@
- # specific language governing permissions and limitations
- # under the License.
-
-+import os
- import socket
- import subprocess
- import time
-@@ -25,6 +26,7 @@ from _pytest.skipping import MarkEvaluator
+@@ -26,6 +26,7 @@ from _pytest.skipping import MarkEvaluator
 
  from selenium import webdriver
  from selenium.webdriver import DesiredCapabilities
@@ -16,7 +8,7 @@
  from test.selenium.webdriver.common.webserver import SimpleWebServer
  from test.selenium.webdriver.common.network import get_lan_ip
 
-@@ -76,6 +78,19 @@ def driver(request):
+@@ -78,6 +79,19 @@ def driver(request):
                  yield
                  return
 
