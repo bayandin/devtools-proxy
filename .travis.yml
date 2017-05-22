@@ -34,6 +34,8 @@ env:
 matrix:
   fast_finish: true
   allow_failures:
+    - env: TESTS=compatibility
+    - env: TESTS=compatibility CHROME_WRAPPER_PATH=devtools/chrome-wrapper.sh DEVTOOLS_PROXY_PATH=dist/linux/devtools-proxy
     - env: TESTS=compatibility DTP_UJSON=true
     - env: TESTS=compatibility DTP_UVLOOP=true
 
