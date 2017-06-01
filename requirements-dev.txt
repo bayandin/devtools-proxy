@@ -4,5 +4,5 @@ pytest-instafail==0.3.0
 pytest-timeout==1.2.0
 pytest-xdist==1.16.0
 requests==2.17.3
-selenium==3.4.2
+selenium==3.4.3
 websocket-client==0.40.0
