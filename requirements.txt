@@ -1,4 +1,4 @@
-aiohttp==2.1.0
+aiohttp==2.2.0
 cchardet==2.1.0
 ujson==1.35
 uvloop==0.8.0; sys_platform != 'win32'
