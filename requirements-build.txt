@@ -1,3 +1,3 @@
 -r requirements.txt
 pip==9.0.1
-https://github.com/pyinstaller/pyinstaller/archive/bb9e52fbffef2bbff76ce991073782a7e06485ca.zip
+https://github.com/pyinstaller/pyinstaller/archive/8998a9d544c5aa65e5479639b743b3c5dc1eebad.zip
