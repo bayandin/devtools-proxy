@@ -2,7 +2,7 @@
 pytest==3.2.0
 pytest-instafail==0.3.0
 pytest-timeout==1.2.0
-pytest-xdist==1.18.2
+pytest-xdist==1.19.0
 requests==2.18.3
 selenium==3.4.3
 websocket-client==0.44.0
