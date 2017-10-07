@@ -8,23 +8,23 @@
  from test.selenium.webdriver.common.webserver import SimpleWebServer
  from test.selenium.webdriver.common.network import get_lan_ip
 
-@@ -78,6 +79,19 @@ def driver(request):
-                 yield
-                 return
+@@ -95,6 +96,19 @@ def driver(request):
 
-+    if driver_class == 'Chrome':
-+        port = free_port()
-+        capabilities = DesiredCapabilities.CHROME.copy()
+     global driver_instance
+     if driver_instance is None:
++        if driver_class == 'Chrome':
++            port = free_port()
++            capabilities = DesiredCapabilities.CHROME.copy()
 +
-+        if os.environ.get('WITH_DEVTOOLS_PROXY') == 'true':
-+            capabilities['chromeOptions'] = {
-+                'binary': os.environ['CHROME_WRAPPER_PATH'],
-+                'args': [
-+                    '--devtools-proxy-binary={}'.format(os.environ['DEVTOOLS_PROXY_PATH']),
-+                    '--devtools-proxy-chrome-debugging-port={}'.format(port),
-+                ]
-+            }
-+        kwargs['desired_capabilities'] = capabilities
-     if driver_class == 'BlackBerry':
-         kwargs.update({'device_password': 'password'})
-     if driver_class == 'Firefox':
++            if os.environ.get('WITH_DEVTOOLS_PROXY') == 'true':
++                capabilities['chromeOptions'] = {
++                    'binary': os.environ['CHROME_WRAPPER_PATH'],
++                    'args': [
++                        '--devtools-proxy-binary={}'.format(os.environ['DEVTOOLS_PROXY_PATH']),
++                        '--devtools-proxy-chrome-debugging-port={}'.format(port),
++                    ]
++                }
++            kwargs['desired_capabilities'] = capabilities
+         if driver_class == 'BlackBerry':
+             kwargs.update({'device_password': 'password'})
+         if driver_class == 'Firefox':
