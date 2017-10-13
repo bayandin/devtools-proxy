@@ -6,6 +6,29 @@
 
 DevTools Proxy is a tool for creating simultaneous connections via Chrome Debugging Protocol ([which is not possible by default](https://developer.chrome.com/devtools/docs/debugger-protocol#simultaneous)).
 
+## How it works
+
+```
++---+      +---+
+| C |      |   |
+| L |      | D |    +-----------+
+| I |      | E |    |           |
+| E |<---->| V |    |  BROWSER  |
+| N |      | T |    |           |
+| T |      | O |    |           |
++---+      | O |    |   +---+   |
+           | L |    |   | T |   |
+           | S |<-----> | A |   |
++---+      |   |    |   | B |   |
+| C |      | P |    |   +---+   |
+| L |      | R |    |           |
+| I |<---->| O |    |           |
+| E |      | X |    |           |
+| N |      | Y |    +-----------+
+| T |      |   |
++---+      +---+
+```
+
 ## Installation
 
 * Download & unzip [standalone binary](https://github.com/bayandin/devtools-proxy/releases/latest) for your system.
@@ -58,25 +81,3 @@ capabilities['chromeOptions'] = {
 * Open a website which you want to inspect
 * Open debugger in a new Chrome tab:  `http://localhost:9222` and choose your website to inspect
 * Repeat the previous step as many times as you need it
-
-## How it works
-
-```
-+---+      +---+
-| C |      | D |
-| L |      | E |
-| I |<---->| V |    +-----------+
-| E |      | T |    |         B |
-| N |      | O |    |  +---+  R |
-| T |      | O |    |  | T |  O |
-+---+      | L |<----->| A |  W |
-           | S |    |  | B |  S |
-+---+      |   |    |  +---+  E |
-| C |      | P |    |         R |
-| L |      | R |    +-----------+
-| I |<---->| O |
-| E |      | X |
-| N |      | Y |
-| T |      +---+
-+---+
-```
