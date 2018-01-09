@@ -5,4 +5,4 @@ pytest-timeout==1.2.1
 pytest-xdist==1.20.1
 requests==2.18.4
 selenium==3.6.0
-websocket-client==0.44.0
+websocket-client==0.46.0
