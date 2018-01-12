@@ -21,7 +21,7 @@ addons:
 
 env:
   global:
-    - CHROMEDRIVER_VERSION=2.33
+    - CHROMEDRIVER_VERSION=2.35
     - DISPLAY=:99.0
   matrix:
     - TESTS=functional
