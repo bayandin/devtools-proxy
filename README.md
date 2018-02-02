@@ -4,7 +4,7 @@
 [![PyPI](https://img.shields.io/pypi/v/devtools-proxy.svg)](https://pypi.python.org/pypi/devtools-proxy)
 [![GitHub release](https://img.shields.io/github/release/bayandin/devtools-proxy.svg)](https://github.com/bayandin/devtools-proxy/releases/latest)
 
-DevTools Proxy is a tool for creating simultaneous connections via Chrome Debugging Protocol ([which is not possible by default](https://developer.chrome.com/devtools/docs/debugger-protocol#simultaneous)).
+DevTools Proxy is a tool for creating simultaneous connections via DevTools Protocol (~~[which is not possible by default](https://developer.chrome.com/devtools/docs/debugger-protocol#simultaneous)~~ and it is [possible](https://developers.google.com/web/updates/2017/10/devtools-release-notes#multi-client) since Chrome 63 even without DevTools Proxy).
 
 ## How it works
 
