@@ -1,5 +1,5 @@
 -r requirements.txt
-pytest==3.4.0
+pytest==3.4.1
 pytest-instafail==0.3.0
 pytest-timeout==1.2.1
 pytest-xdist==1.22.0
