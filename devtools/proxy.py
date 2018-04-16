@@ -264,7 +264,7 @@ async def finish(app, srvs, handler):
     for srv in srvs:
         srv.close()
 
-    await handler.finish_connections()
+    await handler.shutdown()
 
     for srv in srvs:
         await srv.wait_closed()
