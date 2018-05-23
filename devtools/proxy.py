@@ -10,9 +10,12 @@ import warnings
 from pathlib import Path
 
 import aiohttp
-from aiohttp.web import Application, HTTPBadGateway, Response, WebSocketResponse, WSMsgType, hdrs, json_response
+from aiohttp.hdrs import istr
+from aiohttp.web import Application, HTTPBadGateway, Response, WebSocketResponse, WSMsgType, json_response
 
 from devtools import VERSION
+
+CONTENT_LENGTH = istr('CONTENT-LENGTH')
 
 with_ujson = os.environ.get('DTP_UJSON', '').lower() == 'true'
 if with_ujson:
@@ -191,7 +194,7 @@ async def proxy_handler(request):
             else:
                 log_msg('[WARN]', f'JSON data neither list nor dict: {data}')
             body, text = None, json.dumps(data)
-            headers[hdrs.CONTENT_LENGTH] = str(len(text))
+            headers[CONTENT_LENGTH] = str(len(text))
         else:
             body, text = await response.read(), None
 
