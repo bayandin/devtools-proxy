@@ -14,14 +14,14 @@ from aiohttp.web import Application, HTTPBadGateway, Response, WebSocketResponse
 
 from devtools import VERSION
 
-with_ujson = os.environ.get('DTP_UJSON', '').lower() == 'true'
-if with_ujson:
+WITH_UJSON = os.environ.get('DTP_UJSON', '').lower() == 'true'
+if WITH_UJSON:
     import ujson as json
 else:
     import json
 
-with_uvloop = os.environ.get('DTP_UVLOOP', '').lower() == 'true'
-if with_uvloop:
+WITH_UVLOOP = os.environ.get('DTP_UVLOOP', '').lower() == 'true'
+if WITH_UVLOOP:
     import uvloop
 
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -120,7 +120,7 @@ async def ws_browser_handler(request):
     timeout = 10
     interval = 0.1
 
-    for i in range(math.ceil(timeout / interval)):
+    for _ in range(math.ceil(timeout / interval)):
         if app['tabs'][tab_id].get('ws') is not None and not app['tabs'][tab_id]['ws'].closed:
             log_msg(f'[BROWSER {tab_id}]', 'CONNECTED')
             break
@@ -371,8 +371,8 @@ def main():
         'chrome_host': args.chrome_host,
         'chrome_port': args.chrome_port,
         'internal': {
-            'ujson': with_ujson,
-            'uvloop': with_uvloop,
+            'ujson': WITH_UJSON,
+            'uvloop': WITH_UVLOOP,
         },
         'version': VERSION,
     }
